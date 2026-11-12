@@ -32,7 +32,6 @@ jobs:
           
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.nonTransitiveRClass=true" >> gradle.properties
-          echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
           
           echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
           echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }" >> app/build.gradle
@@ -40,7 +39,24 @@ jobs:
           
           echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
           
-          echo 'package com.rootassistant; import android.os.Bundle; import androidx.activity.ComponentActivity; import androidx.activity.compose.setContent; import androidx.compose.material3.Text; class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { Text("Hello from Root Assistant!") } } }' > app/src/main/java/com/rootassistant/MainActivity.kt
+          # كتابة كود Kotlin باستخدام cat لضمان عدم وجود أخطاء في الأسطر
+          cat << 'EOF' > app/src/main/java/com/rootassistant/MainActivity.kt
+          package com.rootassistant
+          
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.setContent
+          import androidx.compose.material3.Text
+          
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent { 
+                      Text("Hello from Root Assistant!") 
+                  }
+              }
+          }
+          EOF
 
       - name: Build APK
         run: gradle assembleDebug
