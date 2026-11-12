@@ -1,0 +1,41 @@
+name: Build APK
+on: [push, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Create Files via Base64
+        run: |
+          mkdir -p app/src/main/java/com/rootassistant
+          
+          echo "cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgewogICAgICAgIGdvb2dsZSgpCiAgICAgICAgbWF2ZW5DZW50cmFsKCkKICAgICAgICBncmFkbGVQbHVnaW5Qb3J0YWwoKQogICAgfQp9CmRlcGVuZGVuY3lSZXNvbHV0aW9uTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXNNb2RlLnNldChSZXBvc2l0b3JpZXNNb2RlLkZBSUxfT05fUFJPSkVDVF9SRVBPUykKICAgIHJlcG9zaXRvcmllcyB7CiAgICAgICAgZ29vZ2xlKCkKICAgICAgICBtYXZlbkNlbnRyYWwoKQogICAgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiUm9vdEFzc2lzdGFudCIKaW5jbHVkZSgiOmFwcCIpCg==" | tr -d ' \n' | base64 -d > settings.gradle
+          
+          echo "b3JnLmdyYWRsZS5qdm1hcmdzPS1YbXgyMDQ4bSAtRGZpbGUuZW5jb2Rpbmc9VVRGLTgKYW5kcm9pZC51c2VBbmRyb2lkWHRydWUKa290bGluLmNvZGUuc3R5bGU9b2ZmaWNpYWwKYW5kcm9pZC5ub25UcmFuc2l0aXZlUkNsYXNzPXRydWUK" | tr -d ' \n' | base64 -d > gradle.properties
+          
+          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguMi4yJwogICAgaWQgJ29yZy5qZXRicmFpbnMua290bGluLmFuZHJvaWQnIHZlcnNpb24gJzEuOS4yMicKfQphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSAnY29tLnJvb3Rhc3Npc3RhbnQnCiAgICBjb21waWxlU2RrIDM0CiAgICBkZWZhdWx0Q29uZmlnIHsKICAgICAgICBhcHBsaWNhdGlvbklkICJjb20ucm9vdGFzc2lzdGFudCIKICAgICAgICBtaW5TZGsgMjkKICAgICAgICB0YXJnZXRTZGsgMzQKICAgICAgICB2ZXJzaW9uQ29kZSAxCiAgICAgICAgdmVyc2lvbk5hbWUgIjEuMCIKICAgIH0KICAgIGJ1aWxkRmVhdHVyZXMgewogICAgICAgIGNvbXBvc2UgdHJ1ZQogICAgfQogICAgY29tcG9zZU9wdGlvbnMgewogICAgICAgIGtvdGxpblNvbXBpbGVyRXh0ZW5zaW9uVmVyc2lvbiAnMS41LjgnCiAgICB9CiAgICBjb21waWxlT3B0aW9ucyB7CiAgICAgICAgc291cmNlQ29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICAgICAgdGFyZ2V0Q29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICB9CiAgICBrb3RsaW5PcHRpb25zIHsKICAgICAgICBqdm1UYXJnZXQgPSAnMTcnCiAgICB9Cn0KZGVwZW5kZW5jaWVzIHsKICAgIGltcGxlbWVudGF0aW9uIHBsYXRmb3JtKCdhbmRyb2lkeC5jb21wb3NlOmNvbXBvc2UtYm9tOjIwMjQuMDIuMDAnKQogICAgaW1wbGVtZW50YXRpb24gJ2FuZHJvaWR4LmFjdGl2aXR5OmFjdGl2aXR5LWNvbXBvc2U6MS44LjInCiAgICBpbXBsZW1lbnRhdGlvbiAnYW5kcm9pZHguY29tcG9zZS5tYXRlcmlhbDM6bWF0ZXJpYWwzJwp9Cg==" | tr -d ' \n' | base64 -d > app/build.gradle
+          
+          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICA8YXBwbGljYXRpb24KICAgICAgICBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIgogICAgICAgIGFuZHJvaWQ6bGFiZWw9IlJvb3RBc3Npc3RhbnQiCiAgICAgICAgYW5kcm9pZDp0aGVtZT0iQGFuZHJvaWQ6c3R5bGUvVGhlbWUuTWF0ZXJpYWwuTGlnaHQuTm9BY3Rpb25CYXIiPgogICAgICAgIDxhY3Rpdml0eQogICAgICAgICAgICBhbmRyb2lkOm5hbWU9Ii5NYWluQWN0aXZpdHkiCiAgICAgICAgICAgIGFuZHJvaWQ6ZXhwb3J0ZWQ9InRydWUiPgogICAgICAgICAgICA8aW50ZW50LWZpbHRlcj4KICAgICAgICAgICAgICAgIDxhY3Rpb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5hY3Rpb24uTUFJTiIgLz4KICAgICAgICAgICAgICAgIDxjYXRlZ29yeSBhbmRyb2lkOm5hbWU9ImFuZHJvaWQuaW50ZW50LmNhdGVnb3J5LkxBVU5DSEVSIiAvPgogICAgICAgICAgICA8L2ludGVudC1maWx0ZXI+CiAgICAgICAgPC9hY3Rpdml0eT4KICAgIDwvYXBwbGljYXRpb24+CjwvbWFuaWZlc3Q+" | tr -d ' \n' | base64 -d > app/src/main/AndroidManifest.xml
+          
+          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudAoKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlCmltcG9ydCBhbmRyb2lkeC5hY3Rpdml0eS5Db21wb25lbnRBY3Rpdml0eQppbXBvcnQgYW5kcm9pZHguYWN0aXZpdHkuY29tcG9zZS5zZXRDb250ZW50CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5UZXh0CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5NYXRlcmlhbFRoZW1lCgpjbGFzcyBNYWluQWN0aXZpdHkgOiBDb21wb25lbnRBY3Rpdml0eSgpIHsKICAgIG92ZXJyaWRlIGZ1biBvbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGU6IEJ1bmRsZT8pIHsKICAgICAgICBzdXBlci5vbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGUpCiAgICAgICAgc2V0Q29udGVudCB7CiAgICAgICAgICAgIE1hdGVyaWFsVGhlbWUgewogICAgICAgICAgICAgICAgVGV4dCgiSGVsbG8gZnJvbSBSb290IEFzc2lzdGFudCEiKQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9" | tr -d ' \n' | base64 -d > app/src/main/java/com/rootassistant/MainActivity.kt
+
+      - name: Build APK
+        run: gradle assembleDebug
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: RootAssistant-APK
+          path: app/build/outputs/apk/debug/*.apk
