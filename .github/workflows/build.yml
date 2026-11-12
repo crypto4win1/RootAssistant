@@ -4,6 +4,10 @@ on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
     steps:
       - uses: actions/checkout@v4
 
@@ -11,8 +15,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      # حذف خطوة إعداد Android SDK لأن ubuntu-latest يحتوي عليه مسبقاً
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
@@ -23,23 +25,19 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          # إعدادات Gradle الأساسية
           echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
           echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
           echo 'rootProject.name = "RootAssistant"' >> settings.gradle
           echo 'include ":app"' >> settings.gradle
           
-          # ملف الخصائص (ضروري جداً لدعم AndroidX)
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.nonTransitiveRClass=true" >> gradle.properties
           echo "org.gradle.jvmargs=-Xmx2048m" >> gradle.properties
           
-          # إعدادات التطبيق
           echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
           echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }" >> app/build.gradle
           echo "dependencies { implementation platform('androidx.compose:compose-bom:2024.02.00'); implementation 'androidx.activity:activity-compose:1.8.2'; implementation 'androidx.compose.material3:material3' }" >> app/build.gradle
           
-          # ملفات التطبيق
           echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
           
           echo 'package com.rootassistant; import android.os.Bundle; import androidx.activity.ComponentActivity; import androidx.activity.compose.setContent; import androidx.compose.material3.Text; class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { Text("Hello from Root Assistant!") } } }' > app/src/main/java/com/rootassistant/MainActivity.kt
