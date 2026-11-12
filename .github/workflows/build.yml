@@ -10,12 +10,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      
-      # 1. تثبيت إصدار Gradle محدد ومتوافق
+
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -25,7 +25,7 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          # 2. إعدادات المشروع الأساسية
+          # 1. إعدادات المشروع
           cat > settings.gradle << 'EOF'
           pluginManagement {
               repositories {
@@ -45,7 +45,7 @@ jobs:
           include ":app"
           EOF
           
-          # 3. خصائص Gradle (تمت إضافة أوامر لتجنب تعارضات الإصدارات)
+          # 2. خصائص Gradle (تمت إضافة مفتاح لتجاهل تحذيرات التوافق)
           cat > gradle.properties << 'EOF'
           android.useAndroidX=true
           android.nonTransitiveRClass=true
@@ -53,7 +53,7 @@ jobs:
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           EOF
           
-          # 4. إعدادات التطبيق (تم ضبط الإصدارات بدقة)
+          # 3. إعدادات التطبيق (إصدارات متطابقة)
           cat > app/build.gradle << 'EOF'
           plugins {
               id 'com.android.application' version '8.2.2'
@@ -90,7 +90,7 @@ jobs:
           }
           EOF
           
-          # 5. ملف البيان
+          # 4. ملف البيان
           cat > app/src/main/AndroidManifest.xml << 'EOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
@@ -105,32 +105,12 @@ jobs:
           </manifest>
           EOF
           
-          # 6. كود Kotlin
-          cat > app/src/main/java/com/rootassistant/MainActivity.kt << 'EOF'
-          package com.rootassistant
-
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.material3.MaterialTheme
-          import androidx.compose.material3.Text
-
-          class MainActivity : ComponentActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContent {
-                      MaterialTheme {
-                          Text("Hello from Root Assistant!")
-                      }
-                  }
-              }
-          }
-          EOF
+          # 5. كود Kotlin (يتم فك تشفيره من Base64 لضمان عدم وجود مسافات خاطئة)
+          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudAoKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlCmltcG9ydCBhbmRyb2lkeC5hY3Rpdml0eS5Db21wb25lbnRBY3Rpdml0eQppbXBvcnQgYW5kcm9pZHguYWN0aXZpdHkuY29tcG9zZS5zZXRDb250ZW50CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5NYXRlcmlhbFRoZW1lCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5UZXh0CgpjbGFzcyBNYWluQWN0aXZpdHkgOiBDb21wb25lbnRBY3Rpdml0eSgpIHsKICAgIG92ZXJyaWRlIGZ1biBvbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGU6IEJ1bmRsZT8pIHsKICAgICAgICBzdXBlci5vbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGUpCiAgICAgICAgc2V0Q29udGVudCB7CiAgICAgICAgICAgIE1hdGVyaWFsVGhlbWUgewogICAgICAgICAgICAgICAgVGV4dCgiSGVsbG8gZnJvbSBSb290IEFzc2lzdGFudCEiKQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9" | base64 -d > app/src/main/java/com/rootassistant/MainActivity.kt
 
       - name: Build APK
         run: |
-          # 7. استخدام Gradle Wrapper المحلي لضمان الاستقرار
-          gradle wrapper
+          gradle wrapper --gradle-version 8.2
           chmod +x gradlew
           ./gradlew assembleDebug
 
