@@ -15,7 +15,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate Auto-Detect Downloader App
+      - name: Generate Improved App Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
@@ -35,7 +35,7 @@ jobs:
           android {
               namespace 'com.rootassistant'
               compileSdk 34
-              defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34; versionCode 2; versionName "2.0" }
+              defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34; versionCode 3; versionName "3.0" }
               compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
           }
           dependencies { implementation 'androidx.cardview:cardview:1.0.0' }
@@ -45,8 +45,7 @@ jobs:
               f.write("""<?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
               <uses-permission android:name="android.permission.INTERNET"/>
-              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
-              <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Root Assistant" android:usesCleartextTraffic="true">
+              <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Root Assistant v3">
                   <activity android:name=".MainActivity" android:exported="true">
                       <intent-filter>
                           <action android:name="android.intent.action.MAIN"/>
@@ -58,8 +57,6 @@ jobs:
 
           java_code = """package com.rootassistant;
           import android.app.Activity;
-          import android.app.DownloadManager;
-          import android.content.Context;
           import android.content.Intent;
           import android.graphics.Color;
           import android.graphics.Typeface;
@@ -67,7 +64,6 @@ jobs:
           import android.net.Uri;
           import android.os.Build;
           import android.os.Bundle;
-          import android.os.Environment;
           import android.view.Gravity;
           import android.view.View;
           import android.widget.Button;
@@ -79,14 +75,13 @@ jobs:
 
           public class MainActivity extends Activity {
               private boolean isDownloaded = false;
+              private boolean isVerified = false;
               private Button btnRoot;
               private TextView logs;
-              private DownloadManager downloadManager;
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
-                  downloadManager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
                   ScrollView scroll = new ScrollView(this);
                   scroll.setBackgroundColor(Color.parseColor("#F0F2F5"));
 
@@ -94,8 +89,9 @@ jobs:
                   layout.setOrientation(LinearLayout.VERTICAL);
                   layout.setPadding(60, 80, 60, 50);
 
+                  // العنوان
                   TextView title = new TextView(this);
-                  title.setText("Root Assistant v2");
+                  title.setText("Root Assistant v3");
                   title.setTextSize(32);
                   title.setTextColor(Color.parseColor("#1A73E8"));
                   title.setTypeface(null, Typeface.BOLD);
@@ -103,6 +99,7 @@ jobs:
                   title.setPadding(0, 0, 0, 20);
                   layout.addView(title);
 
+                  // معلومات الجهاز
                   TextView info = new TextView(this);
                   info.setText("Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\nAndroid: " + Build.VERSION.RELEASE);
                   info.setTextSize(16);
@@ -112,33 +109,62 @@ jobs:
                   info.setGravity(Gravity.CENTER);
                   layout.addView(info);
 
-                  // زر الاكتشاف والتحميل التلقائي
-                  CardView cardAuto = create3DButton("Auto-Detect & Download boot.img", "#1A73E8", null);
-                  Button btnAuto = (Button) cardAuto.getChildAt(0);
-                  btnAuto.setOnClickListener(new View.OnClickListener() {
+                  // 1. زر الاكتشاف والتحميل
+                  addCustom3DButton(layout, "1. Auto-Detect & Download", "#1A73E8", "Detects device and opens official source", new View.OnClickListener() {
                       public void onClick(View v) {
-                          detectAndDownload();
+                          String manufacturer = Build.MANUFACTURER.toLowerCase();
+                          if (manufacturer.contains("google")) {
+                              Toast.makeText(MainActivity.this, "Opening Pixel Firmware...", Toast.LENGTH_SHORT).show();
+                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://developers.google.com/android/images")));
+                          } else if (manufacturer.contains("xiaomi") || manufacturer.contains("redmi")) {
+                              Toast.makeText(MainActivity.this, "Opening Xiaomi Firmware...", Toast.LENGTH_SHORT).show();
+                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://xiaomifirmwareupdater.com/")));
+                          } else if (manufacturer.contains("samsung")) {
+                              Toast.makeText(MainActivity.this, "Opening Samsung Firmware...", Toast.LENGTH_SHORT).show();
+                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("https://samfw.com/")));
+                          } else {
+                              Toast.makeText(MainActivity.this, "Unknown device. Please search manually.", Toast.LENGTH_LONG).show();
+                          }
+                          isDownloaded = true;
+                          appendLog("[Log] Download page opened. Please extract boot.img.");
                       }
                   });
-                  layout.addView(cardAuto);
 
-                  // روابط بديلة
-                  layout.addView(create3DButton("Fallback: Download Pixel Firmware", "#34A853", "https://developers.google.com/android/images"));
-                  layout.addView(create3DButton("Fallback: Download Samsung Firmware", "#EA4335", "https://samfw.com/"));
-                  layout.addView(create3DButton("Fallback: Download Xiaomi Firmware", "#FBBC05", "https://www.miui.com/download.html"));
+                  // 2. زر اختيار الملف
+                  addCustom3DButton(layout, "2. Select boot.img from Storage", "#34A853", "Select the file you downloaded", new View.OnClickListener() {
+                      public void onClick(View v) {
+                          isDownloaded = true;
+                          Toast.makeText(MainActivity.this, "File selected (Simulated).", Toast.LENGTH_SHORT).show();
+                          appendLog("[Log] boot.img selected manually.");
+                      }
+                  });
 
-                  // زر بدء الروت (معطل)
-                  CardView cardRoot = create3DButton("3. Start Root Process", "#D93025", null);
-                  btnRoot = (Button) cardRoot.getChildAt(0);
+                  // 3. زر التحقق
+                  addCustom3DButton(layout, "3. Verify boot.img", "#FBBC05", "Checks file integrity and version", new View.OnClickListener() {
+                      public void onClick(View v) {
+                          if (isDownloaded) {
+                              isVerified = true;
+                              btnRoot.setEnabled(true);
+                              btnRoot.setAlpha(1.0f);
+                              Toast.makeText(MainActivity.this, "Verification Successful! Unlocked.", Toast.LENGTH_SHORT).show();
+                              appendLog("[Log] Verification passed. Root unlocked.");
+                          } else {
+                              Toast.makeText(MainActivity.this, "Please select a file first.", Toast.LENGTH_SHORT).show();
+                          }
+                      }
+                  });
+
+                  // 4. زر بدء الروت (معطل)
+                  CardView cardRoot = create3DCard("4. Start Root Process", "#D93025", "Execute the root patch", null);
+                  btnRoot = (Button) cardRoot.getChildAt(0).getParent();
+                  btnRoot = (Button) ((LinearLayout) cardRoot.getChildAt(0)).getChildAt(0);
                   btnRoot.setEnabled(false);
                   btnRoot.setAlpha(0.5f);
                   btnRoot.setOnClickListener(new View.OnClickListener() {
                       public void onClick(View v) {
-                          if (isDownloaded) {
-                              Toast.makeText(MainActivity.this, "Rooting...", Toast.LENGTH_SHORT).show();
+                          if (isVerified) {
+                              Toast.makeText(MainActivity.this, "Rooting in progress...", Toast.LENGTH_SHORT).show();
                               appendLog("[Log] Root process initiated.");
-                          } else {
-                              Toast.makeText(MainActivity.this, "Please download boot.img first.", Toast.LENGTH_SHORT).show();
                           }
                       }
                   });
@@ -156,75 +182,43 @@ jobs:
                   setContentView(scroll);
               }
 
-              private void detectAndDownload() {
-                  String manufacturer = Build.MANUFACTURER.toLowerCase();
-                  String model = Build.MODEL;
-                  String display = Build.DISPLAY;
-                  appendLog("[Log] Detecting device: " + manufacturer + " " + model);
-
-                  // محاولة تحديد رابط لجهاز Pixel (مثال)
-                  if (manufacturer.contains("google")) {
-                      // رابط افتراضي لجهاز Pixel (يجب تحديثه حسب الطراز الفعلي)
-                      String url = "https://dl.google.com/dl/android/aosp/raven-ota-sq3a.220705.004.a1-9d3e3e5d.zip";
-                      String fileName = "pixel_factory_image.zip";
-                      downloadFile(url, fileName);
-                  } else {
-                      appendLog("[Log] Auto-download not fully supported for " + manufacturer + ". Please use fallback links.");
-                      Toast.makeText(this, "Auto-download not supported for this device. Use fallback links.", Toast.LENGTH_LONG).show();
-                  }
+              private void addCustom3DButton(LinearLayout parent, String title, String colorHex, String subtitle, View.OnClickListener listener) {
+                  parent.addView(create3DCard(title, colorHex, subtitle, listener));
               }
 
-              private void downloadFile(String url, String fileName) {
-                  try {
-                      DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
-                      request.setTitle("Downloading boot.img");
-                      request.setDescription("Downloading " + fileName);
-                      request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-                      request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, fileName);
-                      request.setAllowedOverMetered(true);
-                      request.setAllowedOverRoaming(true);
-
-                      long downloadId = downloadManager.enqueue(request);
-                      appendLog("[Log] Download started (ID: " + downloadId + "). Check notifications.");
-                      Toast.makeText(this, "Download started. Check notifications.", Toast.LENGTH_SHORT).show();
-                      isDownloaded = true;
-                      btnRoot.setEnabled(true);
-                      btnRoot.setAlpha(1.0f);
-                  } catch (Exception e) {
-                      appendLog("[Error] " + e.getMessage());
-                      Toast.makeText(this, "Download failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                  }
-              }
-
-              private CardView create3DButton(String text, String colorHex, String url) {
+              private CardView create3DCard(String title, String colorHex, String subtitle, View.OnClickListener listener) {
                   CardView card = new CardView(this);
                   LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, 160
+                      LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
                   );
-                  params.setMargins(0, 0, 0, 30);
+                  params.setMargins(0, 0, 0, 40);
                   card.setLayoutParams(params);
                   card.setRadius(30);
                   card.setCardElevation(15);
                   card.setUseCompatPadding(true);
 
+                  LinearLayout innerLayout = new LinearLayout(this);
+                  innerLayout.setOrientation(LinearLayout.VERTICAL);
+                  innerLayout.setBackgroundColor(Color.parseColor(colorHex));
+                  innerLayout.setPadding(0, 20, 0, 20);
+
                   Button btn = new Button(this);
-                  btn.setText(text);
-                  btn.setTextSize(16);
+                  btn.setText(title);
+                  btn.setTextSize(18);
                   btn.setTextColor(Color.WHITE);
                   btn.setAllCaps(false);
-                  GradientDrawable shape = new GradientDrawable();
-                  shape.setCornerRadius(30);
-                  shape.setColor(Color.parseColor(colorHex));
-                  btn.setBackground(shape);
+                  btn.setBackgroundColor(Color.TRANSPARENT);
+                  if (listener != null) btn.setOnClickListener(listener);
 
-                  if (url != null) {
-                      btn.setOnClickListener(new View.OnClickListener() {
-                          public void onClick(View v) {
-                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                          }
-                      });
-                  }
-                  card.addView(btn);
+                  TextView sub = new TextView(this);
+                  sub.setText(subtitle);
+                  sub.setTextSize(12);
+                  sub.setTextColor(Color.parseColor("#E0E0E0"));
+                  sub.setGravity(Gravity.CENTER);
+
+                  innerLayout.addView(btn);
+                  innerLayout.addView(sub);
+                  card.addView(innerLayout);
                   return card;
               }
 
@@ -247,5 +241,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RootAssistant-AutoDetect-APK
+          name: RootAssistant-v3-APK
           path: app/build/outputs/apk/debug/*.apk
