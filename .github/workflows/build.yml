@@ -15,23 +15,144 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Java Project Files (Base64)
+      - name: Generate Modern UI Java Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          # 1. إعدادات المشروع
-          echo "cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgewogICAgICAgIGdvb2dsZSgpCiAgICAgICAgbWF2ZW5DZW50cmFsKCkKICAgICAgICBncmFkbGVQbHVnaW5Qb3J0YWwoKQogICAgfQp9CmRlcGVuZGVuY3lSZXNvbHV0aW9uTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXNNb2RlLnNldChSZXBvc2l0b3JpZXNNb2RlLkZBSUxfT05fUFJPSkVDVF9SRVBPUykKICAgIHJlcG9zaXRvcmllcyB7CiAgICAgICAgZ29vZ2xlKCkKICAgICAgICBtYXZlbkNlbnRyYWwoKQogICAgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiUm9vdEFzc2lzdGFudCIKaW5jbHVkZSAnOmFwcCcK" | base64 -d > settings.gradle
+          cat << 'PYEOF' > setup.py
+          import os
+          
+          with open('settings.gradle', 'w') as f:
+              f.write("pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\n")
+              f.write("dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\n")
+              f.write('rootProject.name = "RootAssistant"\ninclude ":app"\n')
 
-          # 2. إعدادات البناء
-          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguMi4yJyBhcHBseSBmYWxzZQp9Cg==" | base64 -d > build.gradle
+          with open('build.gradle', 'w') as f:
+              f.write("plugins { id 'com.android.application' version '8.2.2' apply false }\n")
 
-          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nCn0KYW5kcm9pZCB7CiAgICBuYW1lc3BhY2UgJ2NvbS5yb290YXNzaXN0YW50JwogICAgY29tcGlsZVNkayAzNAogICAgZGVmYXVsdENvbmZpZyB7CiAgICAgICAgYXBwbGljYXRpb25JZCAiY29tLnJvb3Rhc3Npc3RhbnQiCiAgICAgICAgbWluU2RrIDI5CiAgICAgICAgdGFyZ2V0U2RrIDM0CiAgICAgICAgdmVyc2lvbkNvZGUgMQogICAgICAgIHZlcnNpb25OYW1lICIxLjAiCiAgICB9CiAgICBjb21waWxlT3B0aW9ucyB7CiAgICAgICAgc291cmNlQ29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICAgICAgdGFyZ2V0Q29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICB9Cn0K" | base64 -d > app/build.gradle
+          with open('app/build.gradle', 'w') as f:
+              f.write("""plugins { id 'com.android.application' }
+          android {
+              namespace 'com.rootassistant'
+              compileSdk 34
+              defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34; versionCode 1; versionName "1.0" }
+              compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+          }
+          """)
 
-          # 3. ملف البيان (تم تغيير الاسم إلى Root Assistant)
-          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICA8YXBwbGljYXRpb24KICAgICAgICBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIgogICAgICAgIGFuZHJvaWQ6bGFiZWw9IlJvb3QgQXNzaXN0YW50IgogICAgICAgIGFuZHJvaWQ6dGhlbWU9IkBhbmRyb2lkOnN0eWxlL1RoZW1lLk1hdGVyaWFsLkxpZ2h0Lk5vQWN0aW9uQmFyIj4KICAgICAgICA8YWN0aXZpdHkKICAgICAgICAgICAgYW5kcm9pZDpuYW1lPSIuTWFpbkFjdGl2aXR5IgogICAgICAgICAgICBhbmRyb2lkOmV4cG9ydGVkPSJ0cnVlIj4KICAgICAgICAgICAgPGludGVudC1maWx0ZXI+CiAgICAgICAgICAgICAgICA8YWN0aW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5pbnRlbnQuYWN0aW9uLk1BSU4iIC8+CiAgICAgICAgICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgICAgIDwvYWN0aXZpdHk+CiAgICA8L2FwcGxpY2F0aW9uPgo8L21hbmlmZXN0Pg==" | base64 -d > app/src/main/AndroidManifest.xml
+          with open('app/src/main/AndroidManifest.xml', 'w') as f:
+              f.write("""<?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Root Assistant">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>""")
 
-          # 4. كود Java للواجهة الجديدة
-          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudDsKCmltcG9ydCBhbmRyb2lkLmFwcC5BY3Rpdml0eTsKaW1wb3J0IGFuZHJvaWQuY29udGVudC5JbnRlbnQ7CmltcG9ydCBhbmRyb2lkLm5ldC5Vcmk7CmltcG9ydCBhbmRyb2lkLm9zLkJ1bmRsZTsKaW1wb3J0IGFuZHJvaWQudmlldy5HcmF2aXR5OwppbXBvcnQgYW5kcm9pZC52aWV3LlZpZXc7CmltcG9ydCBhbmRyb2lkLndpZGdldC5CdXR0b247CmltcG9ydCBhbmRyb2lkLndpZGdldC5MaW5lYXJMYXlvdXQ7CmltcG9ydCBhbmRyb2lkLndpZGdldC5TY3JvbGxWaWV3OwppbXBvcnQgYW5kcm9pZC53aWRnZXQuVGV4dFZpZXc7CmltcG9ydCBhbmRyb2lkLndpZGdldC5Ub2FzdDsKCnB1YmxpYyBjbGFzcyBNYWluQWN0aXZpdHkgZXh0ZW5kcyBBY3Rpdml0eSB7CiAgICBAT3ZlcnJpZGUKICAgIHByb3RlY3RlZCB2b2lkIG9uQ3JlYXRlKEJ1bmRsZSBzYXZlZEluc3RhbmNlU3RhdGUpIHsKICAgICAgICBzdXBlci5vbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGUpOwogICAgICAgIAogICAgICAgIFNjcm9sbFZpZXcgc2Nyb2xsVmlldyA9IG5ldyBTY3JvbGxWaWV3KHRoaXMpOwogICAgICAgIExpbmVhckxheW91dCBsYXlvdXQgPSBuZXcgTGluZWFyTGF5b3V0KHRoaXMpOwogICAgICAgIGxheW91dC5zZXRPcmllbnRhdGlvbihMaW5lYXJMYXlvdXQuVkVSVElDQUwpOwogICAgICAgIGxheW91dC5zZXRQYWRkaW5nKDUwLCA1MCwgNTAsIDUwKTsKICAgICAgICBsYXlvdXQuc2V0R3Jhdml0eShHcmF2aXR5LkNFTlRFUl9IT1JJWk9OVEFMKTsKCiAgICAgICAgVGV4dFZpZXcgdGl0bGUgPSBuZXcgVGV4dFZpZXcodGhpcyk7CiAgICAgICAgdGl0bGUuc2V0VGV4dCgiUm9vdCBBc3Npc3RhbnQiKTsKICAgICAgICB0aXRsZS5zZXRUZXh0U2l6ZSgyNCk7CiAgICAgICAgdGl0bGUuc2V0R3Jhdml0eShHcmF2aXR5LkNFTlRFUik7CiAgICAgICAgdGl0bGUuc2V0UGFkZGluZygwLCAwLCAwLCA1MCk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcodGl0bGUpOwoKICAgICAgICBUZXh0VmlldyBpbmZvID0gbmV3IFRleHRWaWV3KHRoaXMpOwogICAgICAgIGluZm8uc2V0VGV4dCgiRGV2aWNlOiAiICsgYW5kcm9pZC5vcy5CdWlsZC5NQU5VRkFDVFVSRVIgKyAiICIgKyBhbmRyb2lkLm9zLkJ1aWxkLk1PREVMICsgIlxuQW5kcm9pZDogIiArIGFuZHJvaWQub3MuQnVpbGQuVkVSU0lPTi5SRUxFQVNFKTsKICAgICAgICBpbmZvLnNldFRleHRTaXplKDE2KTsKICAgICAgICBpbmZvLnNldEdyYXZpdHkoR3Jhdml0eS5DRU5URVIpOwogICAgICAgIGluZm8uc2V0UGFkZGluZygwLCAwLCAwLCA1MCk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoaW5mbyk7CgogICAgICAgIEJ1dHRvbiBidG5NYWdpc2sgPSBuZXcgQnV0dG9uKHRoaXMpOwogICAgICAgIGJ0bk1hZ2lzay5zZXRUZXh0KCIxLiBEb3dubG9hZCBNYWdpc2siKTsKICAgICAgICBidG5NYWdpc2suc2V0T25DbGlja0xpc3RlbmVyKG5ldyBWaWV3Lk9uQ2xpY2tMaXN0ZW5lcigpIHsKICAgICAgICAgICAgQE92ZXJyaWRlCiAgICAgICAgICAgIHB1YmxpYyB2b2lkIG9uQ2xpY2soVmlldyB2KSB7CiAgICAgICAgICAgICAgICBJbnRlbnQgYnJvd3NlckludGVudCA9IG5ldyBJbnRlbnQoSW50ZW50LkFDVElPTl9WSUVXLCBVcmkucGFyc2UoImh0dHBzOi8vZ2l0aHViLmNvbS90b3Bqb2hud3UvTWFnaXNrL3JlbGVhc2VzIikpOwogICAgICAgICAgICAgICAgc3RhcnRBY3Rpdml0eShicm93c2VySW50ZW50KTsKICAgICAgICAgICAgfQogICAgICAgIH0pOwogICAgICAgIGxheW91dC5hZGRWaWV3KGJ0bk1hZ2lzayk7CgogICAgICAgIEJ1dHRvbiBidG5TZWxlY3QgPSBuZXcgQnV0dG9uKHRoaXMpOwogICAgICAgIGJ0blNlbGVjdC5zZXRUZXh0KCIyLiBTZWxlY3QgYm9vdC5pbWciKTsKICAgICAgICBidG5TZWxlY3Quc2V0T25DbGlja0xpc3RlbmVyKG5ldyBWaWV3Lk9uQ2xpY2tMaXN0ZW5lcigpIHsKICAgICAgICAgICAgQE92ZXJyaWRlCiAgICAgICAgICAgIHB1YmxpYyB2b2lkIG9uQ2xpY2soVmlldyB2KSB7CiAgICAgICAgICAgICAgICBUb2FzdC5tYWtlVGV4dChNYWluQWN0aXZpdHkudGhpcywgIkZpbGUgcGlja2VyIHdpbGwgb3BlbiBoZXJlIiwgVG9hc3QuTEVOR1RIX1NIT1JUKS5zaG93KCk7CiAgICAgICAgICAgIH0KICAgICAgICB9KTsKICAgICAgICBsYXlvdXQuYWRkVmlldyhidG5TZWxlY3QpOwoKICAgICAgICBzY3JvbGxWaWV3LmFkZFZpZXcobGF5b3V0KTsKICAgICAgICBzZXRDb250ZW50VmlldyhzY3JvbGxWaWV3KTsKICAgIH0KfQ==" | base64 -d > app/src/main/java/com/rootassistant/MainActivity.java
+          java_code = """package com.rootassistant;
+          import android.app.Activity;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.graphics.drawable.GradientDrawable;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+          import android.widget.Toast;
+
+          public class MainActivity extends Activity {
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  ScrollView scroll = new ScrollView(this);
+                  scroll.setBackgroundColor(Color.parseColor("#F6F8FA"));
+
+                  LinearLayout layout = new LinearLayout(this);
+                  layout.setOrientation(LinearLayout.VERTICAL);
+                  layout.setPadding(50, 80, 50, 50);
+
+                  TextView title = new TextView(this);
+                  title.setText("Root Assistant");
+                  title.setTextSize(28);
+                  title.setTextColor(Color.parseColor("#1F6FEB"));
+                  title.setTypeface(null, Typeface.BOLD);
+                  title.setGravity(Gravity.CENTER);
+                  title.setPadding(0, 0, 0, 40);
+                  layout.addView(title);
+
+                  TextView info = new TextView(this);
+                  info.setText("Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\nAndroid: " + Build.VERSION.RELEASE);
+                  info.setTextSize(16);
+                  info.setTextColor(Color.parseColor("#24292F"));
+                  info.setBackgroundColor(Color.parseColor("#FFFFFF"));
+                  info.setPadding(40, 40, 40, 40);
+                  info.setGravity(Gravity.CENTER);
+                  layout.addView(info);
+
+                  TextView sp1 = new TextView(this);
+                  sp1.setHeight(60);
+                  layout.addView(sp1);
+
+                  Button btnSelect = createButton("1. Select boot.img", "#1F6FEB");
+                  btnSelect.setOnClickListener(new View.OnClickListener() {
+                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Selecting boot.img...", Toast.LENGTH_SHORT).show(); }
+                  });
+                  layout.addView(btnSelect);
+
+                  Button btnVerify = createButton("2. Verify boot.img", "#2EA043");
+                  btnVerify.setOnClickListener(new View.OnClickListener() {
+                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Verifying...", Toast.LENGTH_SHORT).show(); }
+                  });
+                  layout.addView(btnVerify);
+
+                  Button btnRoot = createButton("3. Start Root Process", "#D73A49");
+                  btnRoot.setOnClickListener(new View.OnClickListener() {
+                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Initiating Root Process...", Toast.LENGTH_SHORT).show(); }
+                  });
+                  layout.addView(btnRoot);
+
+                  TextView logs = new TextView(this);
+                  logs.setText("Status: Waiting for input...\\n\\n[Log] App Started Successfully.");
+                  logs.setTextSize(14);
+                  logs.setTextColor(Color.GRAY);
+                  logs.setPadding(0, 50, 0, 0);
+                  layout.addView(logs);
+
+                  scroll.addView(layout);
+                  setContentView(scroll);
+              }
+
+              private Button createButton(String text, String colorHex) {
+                  Button btn = new Button(this);
+                  btn.setText(text);
+                  btn.setTextSize(16);
+                  btn.setTextColor(Color.WHITE);
+                  GradientDrawable shape = new GradientDrawable();
+                  shape.setCornerRadius(30);
+                  shape.setColor(Color.parseColor(colorHex));
+                  btn.setBackground(shape);
+                  LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT, 150
+                  );
+                  params.setMargins(0, 0, 0, 30);
+                  btn.setLayoutParams(params);
+                  return btn;
+              }
+          }"""
+
+          with open('app/src/main/java/com/rootassistant/MainActivity.java', 'w') as f:
+              f.write(java_code)
+          PYEOF
+          
+          python3 setup.py
 
       - name: Build APK
         run: |
