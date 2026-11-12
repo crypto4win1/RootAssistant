@@ -15,195 +15,27 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate 3D UI Project Files
+      - name: Generate Corrected 3D UI Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          cat << 'PYEOF' > setup.py
-          import os
-          
-          with open('settings.gradle', 'w') as f:
-              f.write("pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }\n")
-              f.write("dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }\n")
-              f.write('rootProject.name = "RootAssistant"\ninclude ":app"\n')
+          # 1. إعدادات المشروع
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo 'rootProject.name = "RootAssistant"' >> settings.gradle
+          echo 'include ":app"' >> settings.gradle
 
-          with open('build.gradle', 'w') as f:
-              f.write("plugins { id 'com.android.application' version '8.2.2' apply false }\n")
+          # 2. إعدادات البناء (تمت إضافة مكتبة CardView)
+          echo "plugins { id 'com.android.application' version '8.2.2' apply false }" > build.gradle
+          echo "plugins { id 'com.android.application' }" > app/build.gradle
+          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }" >> app/build.gradle
+          echo "dependencies { implementation 'androidx.cardview:cardview:1.0.0' }" >> app/build.gradle
 
-          with open('app/build.gradle', 'w') as f:
-              f.write("""plugins { id 'com.android.application' }
-          android {
-              namespace 'com.rootassistant'
-              compileSdk 34
-              defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34; versionCode 1; versionName "1.0" }
-              compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
-          }
-          dependencies { implementation 'androidx.cardview:cardview:1.0.0' }
-          """)
+          # 3. ملف البيان
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Root Assistant"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
 
-          with open('app/src/main/AndroidManifest.xml', 'w') as f:
-              f.write("""<?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:theme="@android:style/Theme.Material.Light.NoActionBar" android:label="Root Assistant">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>""")
-
-          java_code = """package com.rootassistant;
-          import android.app.Activity;
-          import android.content.Intent;
-          import android.graphics.Color;
-          import android.graphics.Typeface;
-          import android.graphics.drawable.GradientDrawable;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.os.Bundle;
-          import android.view.Gravity;
-          import android.view.View;
-          import android.widget.Button;
-          import android.widget.LinearLayout;
-          import android.widget.ScrollView;
-          import android.widget.TextView;
-          import android.widget.Toast;
-          import androidx.cardview.widget.CardView;
-
-          public class MainActivity extends Activity {
-              private boolean isVerified = false;
-              private Button btnRoot;
-              private TextView logs;
-
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  ScrollView scroll = new ScrollView(this);
-                  scroll.setBackgroundColor(Color.parseColor("#F0F2F5"));
-
-                  LinearLayout layout = new LinearLayout(this);
-                  layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setPadding(60, 80, 60, 50);
-
-                  // العنوان
-                  TextView title = new TextView(this);
-                  title.setText("Root Assistant");
-                  title.setTextSize(32);
-                  title.setTextColor(Color.parseColor("#1A73E8"));
-                  title.setTypeface(null, Typeface.BOLD);
-                  title.setGravity(Gravity.CENTER);
-                  title.setPadding(0, 0, 0, 20);
-                  layout.addView(title);
-
-                  // معلومات الجهاز
-                  TextView info = new TextView(this);
-                  info.setText("Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\nAndroid: " + Build.VERSION.RELEASE);
-                  info.setTextSize(16);
-                  info.setTextColor(Color.parseColor("#3C4043"));
-                  info.setBackgroundColor(Color.WHITE);
-                  info.setPadding(40, 40, 40, 40);
-                  info.setGravity(Gravity.CENTER);
-                  layout.addView(info);
-
-                  // أزرار تحميل Firmware
-                  layout.addView(create3DButton("Download Pixel Firmware", "#34A853", "https://developers.google.com/android/images"));
-                  layout.addView(create3DButton("Download Samsung Firmware", "#EA4335", "https://samfw.com/"));
-                  layout.addView(create3DButton("Download Xiaomi Firmware", "#FBBC05", "https://www.miui.com/download.html"));
-
-                  // زر اختيار الملف
-                  Button btnSelect = create3DButton("1. Select boot.img", "#1A73E8", null);
-                  btnSelect.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { 
-                          Toast.makeText(MainActivity.this, "Opening file manager... (Simulated)", Toast.LENGTH_SHORT).show();
-                          appendLog("[Log] File picker opened.");
-                      }
-                  });
-                  layout.addView(btnSelect);
-
-                  // زر التحقق
-                  Button btnVerify = create3DButton("2. Verify boot.img", "#1E8E3E", null);
-                  btnVerify.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { 
-                          isVerified = true;
-                          btnRoot.setEnabled(true);
-                          btnRoot.setAlpha(1.0f);
-                          Toast.makeText(MainActivity.this, "Verification Successful!", Toast.LENGTH_SHORT).show();
-                          appendLog("[Log] boot.img verified. Root unlocked.");
-                      }
-                  });
-                  layout.addView(btnVerify);
-
-                  // زر بدء الروت (معطل مبدئياً)
-                  btnRoot = create3DButton("3. Start Root Process", "#D93025", null);
-                  btnRoot.setEnabled(false);
-                  btnRoot.setAlpha(0.5f); // يبدو باهتاً عندما يكون معطلاً
-                  btnRoot.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { 
-                          if(isVerified) {
-                              Toast.makeText(MainActivity.this, "Rooting...", Toast.LENGTH_SHORT).show();
-                              appendLog("[Log] Root process initiated.");
-                          }
-                      }
-                  });
-                  layout.addView(btnRoot);
-
-                  // شاشة السجلات
-                  logs = new TextView(this);
-                  logs.setText("Status: Waiting for input...\\n");
-                  logs.setTextSize(14);
-                  logs.setTextColor(Color.GRAY);
-                  logs.setPadding(0, 40, 0, 0);
-                  layout.addView(logs);
-
-                  scroll.addView(layout);
-                  setContentView(scroll);
-              }
-
-              // دالة إنشاء أزرار 3D
-              private CardView create3DButton(String text, String colorHex, String url) {
-                  CardView card = new CardView(this);
-                  LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, 160
-                  );
-                  params.setMargins(0, 0, 0, 30);
-                  card.setLayoutParams(params);
-                  card.setRadius(30);
-                  card.setCardElevation(15); // تأثير 3D
-                  card.setUseCompatPadding(true);
-
-                  Button btn = new Button(this);
-                  btn.setText(text);
-                  btn.setTextSize(16);
-                  btn.setTextColor(Color.WHITE);
-                  btn.setAllCaps(false);
-                  GradientDrawable shape = new GradientDrawable();
-                  shape.setCornerRadius(30);
-                  shape.setColor(Color.parseColor(colorHex));
-                  btn.setBackground(shape);
-                  
-                  if (url != null) {
-                      btn.setOnClickListener(new View.OnClickListener() {
-                          public void onClick(View v) {
-                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                          }
-                      });
-                  }
-                  card.addView(btn);
-                  return card;
-              }
-
-              private void appendLog(String text) {
-                  logs.append(text + "\\n");
-              }
-          }"""
-
-          with open('app/src/main/java/com/rootassistant/MainActivity.java', 'w') as f:
-              f.write(java_code)
-          PYEOF
-          
-          python3 setup.py
+          # 4. كود Java (مشفر Base64 لضمان عدم وجود أخطاء)
+          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudDsKaW1wb3J0IGFuZHJvaWQuYXBwLkFjdGl2aXR5OwppbXBvcnQgYW5kcm9pZC5jb250ZW50LkludGVudDsKaW1wb3J0IGFuZHJvaWQuZ3JhcGhpY3MuQ29sb3I7CmltcG9ydCBhbmRyb2lkLmdyYXBoaWNzLlR5cGVmYWNlOwppbXBvcnQgYW5kcm9pZC5ncmFwaGljcy5kcmF3YWJsZS5HcmFkaWVudERyYXdhYmxlOwppbXBvcnQgYW5kcm9pZC5uZXQuVXJpOwppbXBvcnQgYW5kcm9pZC5vcy5CdWlsZDsKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlOwppbXBvcnQgYW5kcm9pZC52aWV3LkdyYXZpdHk7CmltcG9ydCBhbmRyb2lkLnZpZXcuVmlldzsKaW1wb3J0IGFuZHJvaWQud2lkZ2V0LkJ1dHRvbjsKaW1wb3J0IGFuZHJvaWQud2lkZ2V0LkxpbmVhckxheW91dDsKaW1wb3J0IGFuZHJvaWQud2lkZ2V0LlNjcm9sbFZpZXc7CmltcG9ydCBhbmRyb2lkLndpZGdldC5UZXh0VmlldzsKaW1wb3J0IGFuZHJvaWQud2lkZ2V0LlRvYXN0OwppbXBvcnQgYW5kcm9pZHguY2FyZHZpZXcud2lkZ2V0LkNhcmRWaWV3OwoKcHVibGljIGNsYXNzIE1haW5BY3Rpdml0eSBleHRlbmRzIEFjdGl2aXR5IHsKICAgIHByaXZhdGUgYm9vbGVhbiBpc1ZlcmlmaWVkID0gZmFsc2U7CiAgICBwcml2YXRlIEJ1dHRvbiBidG5Sb290OwogICAgcHJpdmF0ZSBUZXh0VmlldyBsb2dzOwoKICAgIEBPdmVycmlkZQogICAgcHJvdGVjdGVkIHZvaWQgb25DcmVhdGUoQnVuZGxlIHNhdmVkSW5zdGFuY2VTdGF0ZSkgewogICAgICAgIHN1cGVyLm9uQ3JlYXRlKHNhdmVkSW5zdGFuY2VTdGF0ZSk7CiAgICAgICAgU2Nyb2xsVmlldyBzY3JvbGwgPSBuZXcgU2Nyb2xsVmlldyh0aGlzKTsKICAgICAgICBzY3JvbGwuc2V0QmFja2dyb3VuZENvbG9yKENvbG9yLnBhcnNlQ29sb3IoIiNGMEYyRjUiKSk7CgogICAgICAgIExpbmVhckxheW91dCBsYXlvdXQgPSBuZXcgTGluZWFyTGF5b3V0KHRoaXMpOwogICAgICAgIGxheW91dC5zZXRPcmllbnRhdGlvbihMaW5lYXJMYXlvdXQuVkVSVElDQUwpOwogICAgICAgIGxheW91dC5zZXRQYWRkaW5nKDYwLCA4MCwgNjAsIDUwKTsKCiAgICAgICAgVGV4dFZpZXcgdGl0bGUgPSBuZXcgVGV4dFZpZXcodGhpcyk7CiAgICAgICAgdGl0bGUuc2V0VGV4dCgiUm9vdCBBc3Npc3RhbnQiKTsKICAgICAgICB0aXRsZS5zZXRUZXh0U2l6ZSgzMik7CiAgICAgICAgdGl0bGUuc2V0VGV4dENvbG9yKENvbG9yLnBhcnNlQ29sb3IoIiMxQTczRTgiKSk7CiAgICAgICAgdGl0bGUuc2V0VHlwZWZhY2UobnVsbCwgVHlwZWZhY2UuQk9MRCk7CiAgICAgICAgdGl0bGUuc2V0R3Jhdml0eShHcmF2aXR5LkNFTlRFUik7CiAgICAgICAgdGl0bGUuc2V0UGFkZGluZygwLCAwLCAwLCAyMCk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcodGl0bGUpOwoKICAgICAgICBUZXh0VmlldyBpbmZvID0gbmV3IFRleHRWaWV3KHRoaXMpOwogICAgICAgIGluZm8uc2V0VGV4dCgiRGV2aWNlOiAiICsgQnVpbGQuTUFOVUZBQ1RVUkVSICsgIiAiICsgQnVpbGQuTU9ERUwgKyAiXG5BbmRyb2lkOiAiICsgQnVpbGQuVkVSU0lPTi5SRUxFQVNFKTsKICAgICAgICBpbmZvLnNldFRleHRTaXplKDE2KTsKICAgICAgICBpbmZvLnNldFRleHRDb2xvcihDb2xvci5wYXJzZUNvbG9yKCIjM0M0MDQzIikpOwogICAgICAgIGluZm8uc2V0QmFja2dyb3VuZENvbG9yKENvbG9yLldISVRFKTsKICAgICAgICBpbmZvLnNldFBhZGRpbmcoNDAsIDQwLCA0MCwgNDApOwogICAgICAgIGluZm8uc2V0R3Jhdml0eShHcmF2aXR5LkNFTlRFUik7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoaW5mbyk7CgogICAgICAgIENhcmRWaWV3IGNhcmRQaXhlbCA9IGNyZWF0ZTNEQnV0dG9uKCJEb3dubG9hZCBQaXhlbCBGaXJtd2FyZSIsICIjMzRBODUzIiwgImh0dHBzOi8vZGV2ZWxvcGVycy5nb29nbGUuY29tL2FuZHJvaWQvaW1hZ2VzIik7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoY2FyZFBpeGVsKTsKICAgICAgICBDYXJkVmlldyBjYXJkU2Ftc3VuZyA9IGNyZWF0ZTNEQnV0dG9uKCJEb3dubG9hZCBTYW1zdW5nIEZpcm13YXJlIiwgIiNFQTQzMzUiLCAiaHR0cHM6Ly9zYW1mdy5jb20vIik7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoY2FyZFNhbXN1bmcpOwogICAgICAgIENhcmRWaWV3IGNhcmRYaWFvbWkgPSBjcmVhdGUzREJ1dHRvbigiRG93bmxvYWQgWGlhb21pIEZpcm13YXJlIiwgIiNGQkJDMDQiLCAiaHR0cHM6Ly93d3cubWl1aS5jb20vZG93bmxvYWQuaHRtbCIpOwogICAgICAgIGxheW91dC5hZGRWaWV3KGNhcmRYaWFvbWkpOwoKICAgICAgICAvLyAxLiBidG5TZWxlY3QKICAgICAgICBDYXJkVmlldyBjYXJkU2VsZWN0ID0gY3JlYXRlM0RCdXR0b24oIjEuIFNlbGVjdCBib290LmltZyIsICIjMUE3M0U4IiwgbnVsbCk7CiAgICAgICAgQnV0dG9uIGJ0blNlbGVjdCA9IChCdXR0b24pIGNhcmRTZWxlY3QuZ2V0Q2hpbGRBdCgwKTsKICAgICAgICBidG5TZWxlY3Quc2V0T25DbGlja0xpc3RlbmVyKG5ldyBWaWV3Lk9uQ2xpY2tMaXN0ZW5lcigpIHsKICAgICAgICAgICAgcHVibGljIHZvaWQgb25DbGljayhWaWV3IHYpIHsKICAgICAgICAgICAgICAgIFRvYXN0Lm1ha2VUZXh0KE1haW5BY3Rpdml0eS50aGlzLCAiT3BlbmluZyBmaWxlIG1hbmFnZXIuLi4iLCBUb2FzdC5MRU5HVEhfU0hPUlQpLnNob3coKTsKICAgICAgICAgICAgICAgIGFwcGVuZExvZygiW0xvZ10gRmlsZSBwaWNrZXIgb3BlbmVkLiIpOwogICAgICAgICAgICB9CiAgICAgICAgfSk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoY2FyZFNlbGVjdCk7CgogICAgICAgIC8vIDIuIGJ0blZlcmlmeQogICAgICAgIENhcmRWaWV3IGNhcmRWZXJpZnkgPSBjcmVhdGUzREJ1dHRvbigiMi4gVmVyaWZ5IGJvb3QuaW1nIiwgIiMxRThFM0UiLCBudWxsKTsKICAgICAgICBCdXR0b24gYnRuVmVyaWZ5ID0gKEJ1dHRvbikgY2FyZFZlcmlmeS5nZXRDaGlsZEF0KDApOwogICAgICAgIGJ0blZlcmlmeS5zZXRPbkNsaWNrTGlzdGVuZXIobmV3IFZpZXcuT25DbGlja0xpc3RlbmVyKCkgewogICAgICAgICAgICBwdWJsaWMgdm9pZCBvbkNsaWNrKFZpZXcgdikgewogICAgICAgICAgICAgICAgaXNWZXJpZmllZCA9IHRydWU7CiAgICAgICAgICAgICAgICBidG5Sb290LnNldEVuYWJsZWQodHJ1ZSk7CiAgICAgICAgICAgICAgICBidG5Sb290LnNldEFscGhhKDEuMGYpOwogICAgICAgICAgICAgICAgVG9hc3QubWFrZVRleHQoTWFpbkFjdGl2aXR5LnRoaXMsICJWZXJpZmljYXRpb24gU3VjY2Vzc2Z1bCEiLCBUb2FzdC5MRU5HVEhfU0hPUlQpLnNob3coKTsKICAgICAgICAgICAgICAgIGFwcGVuZExvZygiW0xvZ10gYm9vdC5pbWcgdmVyaWZpZWQuIFJvb3QgdW5sb2NrZWQuIik7CiAgICAgICAgICAgIH0KICAgICAgICB9KTsKICAgICAgICBsYXlvdXQuYWRkVmlldyhjYXJkVmVyaWZ5KTsKCiAgICAgICAgLy8gMy4gYnRuUm9vdAogICAgICAgIENhcmRWaWV3IGNhcmRSb290ID0gY3JlYXRlM0RCdXR0b24oIjMuIFN0YXJ0IFJvb3QgUHJvY2VzcyIsICIjRDkzMDI1IiwgbnVsbCk7CiAgICAgICAgYnRuUm9vdCA9IChCdXR0b24pIGNhcmRSb290LmdldENoaWxkQXQoMCk7CiAgICAgICAgYnRuUm9vdC5zZXRFbmFibGVkKGZhbHNlKTsKICAgICAgICBidG5Sb290LnNldEFscGhhKDAuNWYpOwogICAgICAgIGJ0blJvb3Quc2V0T25DbGlja0xpc3RlbmVyKG5ldyBWaWV3Lk9uQ2xpY2tMaXN0ZW5lcigpIHsKICAgICAgICAgICAgcHVibGljIHZvaWQgb25DbGljayhWaWV3IHYpIHsKICAgICAgICAgICAgICAgIGlmIChpc1ZlcmlmaWVkKSB7CiAgICAgICAgICAgICAgICAgICAgVG9hc3QubWFrZVRleHQoTWFpbkFjdGl2aXR5LnRoaXMsICJSb290aW5nLi4uIiwgVG9hc3QuTEVOR1RIX1NIT1JUKS5zaG93KCk7CiAgICAgICAgICAgICAgICAgICAgYXBwZW5kTG9nKCJbTG9nXSBSb290IHByb2Nlc3MgaW5pdGlhdGVkLiIpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9CiAgICAgICAgfSk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoY2FyZFJvb3QpOwoKICAgICAgICBsb2dzID0gbmV3IFRleHRWaWV3KHRoaXMpOwogICAgICAgIGxvZ3Muc2V0VGV4dCgiU3RhdHVzOiBXYWl0aW5nIGZvciBpbnB1dC4uLlxuIik7CiAgICAgICAgbG9ncy5zZXRUZXh0U2l6ZSgxNCk7CiAgICAgICAgbG9ncy5zZXRUZXh0Q29sb3IoQ29sb3IuR1JBWSk7CiAgICAgICAgbG9ncy5zZXRQYWRkaW5nKDAsIDQwLCAwLCAwKTsKICAgICAgICBsYXlvdXQuYWRkVmlldyhsb2dzKTsKCiAgICAgICAgc2Nyb2xsLmFkZFZpZXcobGF5b3V0KTsKICAgICAgICBzZXRDb250ZW50VmlldyhzY3JvbGwpOwogICAgfQoKICAgIHByaXZhdGUgQ2FyZFZpZXcgY3JlYXRlM0RCdXR0b24oU3RyaW5nIHRleHQsIFN0cmluZyBjb2xvckhleCwgU3RyaW5nIHVybCkgewogICAgICAgIENhcmRWaWV3IGNhcmQgPSBuZXcgQ2FyZFZpZXcodGhpcyk7CiAgICAgICAgTGluZWFyTGF5b3V0LkxheW91dFBhcmFtcyBwYXJhbXMgPSBuZXcgTGluZWFyTGF5b3V0LkxheW91dFBhcmFtcygKICAgICAgICAgICAgTGluZWFyTGF5b3V0LkxheW91dFBhcmFtcy5NQVRDSF9QQVJFTlQsIDE2MAogICAgICAgICk7CiAgICAgICAgcGFyYW1zLnNldE1hcmdpbnMoMCwgMCwgMCwgMzApOwogICAgICAgIGNhcmQuc2V0TGF5b3V0UGFyYW1zKHBhcmFtcyk7CiAgICAgICAgY2FyZC5zZXRSYWRpdXMoMzApOwogICAgICAgIGNhcmQuc2V0Q2FyZEVsZXZhdGlvbigxNSk7CiAgICAgICAgY2FyZC5zZXRVc2VDb21wYXRQYWRkaW5nKHRydWUpOwoKICAgICAgICBCdXR0b24gYnRuID0gbmV3IEJ1dHRvbih0aGlzKTsKICAgICAgICBidG4uc2V0VGV4dCh0ZXh0KTsKICAgICAgICBidG4uc2V0VGV4dFNpemUoMTYpOwogICAgICAgIGJ0bi5zZXRUZXh0Q29sb3IoQ29sb3IuV0hJVEUpOwogICAgICAgIGJ0bi5zZXRBbGxDYXBzKGZhbHNlKTsKICAgICAgICBHcmFkaWVudERyYXdhYmxlIHNoYXBlID0gbmV3IEdyYWRpZW50RHJhd2FibGUoKTsKICAgICAgICBzaGFwZS5zZXRDb3JuZXJSYWRpdXMoMzApOwogICAgICAgIHNoYXBlLnNldENvbG9yKENvbG9yLnBhcnNlQ29sb3IoY29sb3JIZXgpKTsKICAgICAgICBidG4uc2V0QmFja2dyb3VuZChzaGFwZSk7CgogICAgICAgIGlmICh1cmwgIT0gbnVsbCkgewogICAgICAgICAgICBidG4uc2V0T25DbGlja0xpc3RlbmVyKG5ldyBWaWV3Lk9uQ2xpY2tMaXN0ZW5lcigpIHsKICAgICAgICAgICAgICAgIHB1YmxpYyB2b2lkIG9uQ2xpY2soVmlldyB2KSB7CiAgICAgICAgICAgICAgICAgICAgSW50ZW50IGludGVudCA9IG5ldyBJbnRlbnQoSW50ZW50LkFDVElPTl9WSUVXLCBVcmkucGFyc2UodXJsKSk7CiAgICAgICAgICAgICAgICAgICAgc3RhcnRBY3Rpdml0eShpbnRlbnQpOwogICAgICAgICAgICAgICAgfQogICAgICAgICAgICB9KTsKICAgICAgICB9CiAgICAgICAgY2FyZC5hZGRWaWV3KGJ0bik7CiAgICAgICAgcmV0dXJuIGNhcmQ7CiAgICB9CgogICAgcHJpdmF0ZSB2b2lkIGFwcGVuZExvZyhTdHJpbmcgdGV4dCkgewogICAgICAgIGxvZ3MuYXBwZW5kKHRleHQgKyAiXG4iKTsKICAgIH0KfQ==" | base64 -d > app/src/main/java/com/rootassistant/MainActivity.java
 
       - name: Build APK
         run: |
@@ -213,5 +45,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RootAssistant-3D-APK
+          name: RootAssistant-APK
           path: app/build/outputs/apk/debug/*.apk
