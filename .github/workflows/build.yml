@@ -6,41 +6,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-          
       - uses: android-actions/setup-android@v3
-      
-      - name: Build
+      - name: Build with Gradle
         run: |
           mkdir -p app/src/main/java/com/rootassistant
-          mkdir -p app/src/main/res/values
           
-          echo 'pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }' > settings.gradle.kts
-          echo 'dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }' >> settings.gradle.kts
-          echo 'rootProject.name = "RootAssistant"' >> settings.gradle.kts
-          echo 'include(":app")' >> settings.gradle.kts
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo 'rootProject.name = "RootAssistant"' >> settings.gradle
+          echo 'include(":app")' >> settings.gradle
           
-          echo 'plugins { id("com.android.application") version "8.2.2" apply false; id("org.jetbrains.kotlin.android") version "1.9.22" apply false }' > build.gradle.kts
+          echo 'plugins { id "com.android.application" version "8.2.2"; id "org.jetbrains.kotlin.android" version "1.9.22" }' > app/build.gradle
+          echo 'android { namespace "com.rootassistant"; compileSdk 34; defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34 }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion "1.5.8" }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }' >> app/build.gradle
+          echo 'dependencies { implementation platform("androidx.compose:compose-bom:2024.02.00"); implementation "androidx.activity:activity-compose:1.8.2"; implementation "androidx.compose.material3:material3" }' >> app/build.gradle
           
-          echo 'org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8' > gradle.properties
-          echo 'android.useAndroidX=true' >> gradle.properties
+          echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
           
-          echo 'plugins { id("com.android.application"); id("org.jetbrains.kotlin.android") }' > app/build.gradle.kts
-          echo 'android { namespace = "com.rootassistant"; compileSdk = 34; defaultConfig { applicationId = "com.rootassistant"; minSdk = 29; targetSdk = 34 } }' >> app/build.gradle.kts
-          echo 'dependencies { implementation("androidx.core:core-ktx:1.12.0") }' >> app/build.gradle.kts
+          echo 'package com.rootassistant; import android.os.Bundle; import androidx.activity.ComponentActivity; import androidx.activity.compose.setContent; import androidx.compose.material3.Text; class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { Text("Hello World") } } }' > app/src/main/java/com/rootassistant/MainActivity.kt
           
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
-          
-          echo 'package com.rootassistant; class MainActivity : android.app.Activity()' > app/src/main/java/com/rootassistant/MainActivity.kt
-          
-          gradle wrapper --gradle-version 8.6
+          gradle wrapper
           ./gradlew assembleDebug
           
       - uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: RootAssistant-APK
           path: app/build/outputs/apk/debug/*.apk
