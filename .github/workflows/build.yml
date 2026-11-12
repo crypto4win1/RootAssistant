@@ -10,12 +10,12 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-
+      
+      # 1. تثبيت إصدار Gradle محدد ومتوافق
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
         with:
@@ -25,26 +25,87 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          # 1. ملف الإعدادات الرئيسي
-          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
-          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
-          echo 'rootProject.name = "RootAssistant"' >> settings.gradle
-          echo 'include ":app"' >> settings.gradle
+          # 2. إعدادات المشروع الأساسية
+          cat > settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "RootAssistant"
+          include ":app"
+          EOF
           
-          # 2. خصائص Gradle (تمت إضافة مفتاح لتجاهل تحذيرات التوافق)
-          echo "android.useAndroidX=true" > gradle.properties
-          echo "android.nonTransitiveRClass=true" >> gradle.properties
-          echo "kotlin.jvm.target.validation.mode = IGNORE" >> gradle.properties
+          # 3. خصائص Gradle (تمت إضافة أوامر لتجنب تعارضات الإصدارات)
+          cat > gradle.properties << 'EOF'
+          android.useAndroidX=true
+          android.nonTransitiveRClass=true
+          kotlin.jvm.target.validation.mode=IGNORE
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          EOF
           
-          # 3. ملف بناء التطبيق (إصدارات متوافقة)
-          echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
-          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.4.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = '17' } }" >> app/build.gradle
-          echo "dependencies { implementation platform('androidx.compose:compose-bom:2024.02.00'); implementation 'androidx.activity:activity-compose:1.8.2'; implementation 'androidx.compose.material3:material3' }" >> app/build.gradle
+          # 4. إعدادات التطبيق (تم ضبط الإصدارات بدقة)
+          cat > app/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.2.2'
+              id 'org.jetbrains.kotlin.android' version '1.9.22'
+          }
+          android {
+              namespace 'com.rootassistant'
+              compileSdk 34
+              defaultConfig {
+                  applicationId "com.rootassistant"
+                  minSdk 29
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+              buildFeatures {
+                  compose true
+              }
+              composeOptions {
+                  kotlinCompilerExtensionVersion '1.5.8'
+              }
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+              kotlinOptions {
+                  jvmTarget = '17'
+              }
+          }
+          dependencies {
+              implementation platform('androidx.compose:compose-bom:2024.02.00')
+              implementation 'androidx.activity:activity-compose:1.8.2'
+              implementation 'androidx.compose.material3:material3'
+          }
+          EOF
           
-          # 4. ملف البيان (Manifest)
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          # 5. ملف البيان
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application android:theme="@android:style/Theme.Material.Light.NoActionBar">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+              </application>
+          </manifest>
+          EOF
           
-          # 5. كود Kotlin (مكتوب بتنسيق سليم)
+          # 6. كود Kotlin
           cat > app/src/main/java/com/rootassistant/MainActivity.kt << 'EOF'
           package com.rootassistant
 
@@ -68,7 +129,8 @@ jobs:
 
       - name: Build APK
         run: |
-          gradle wrapper --gradle-version 8.2
+          # 7. استخدام Gradle Wrapper المحلي لضمان الاستقرار
+          gradle wrapper
           chmod +x gradlew
           ./gradlew assembleDebug
 
