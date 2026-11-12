@@ -25,38 +25,26 @@ jobs:
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
+          # إعدادات Gradle
           echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
           echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
           echo 'rootProject.name = "RootAssistant"' >> settings.gradle
           echo 'include ":app"' >> settings.gradle
           
+          # خصائص Gradle
           echo "android.useAndroidX=true" > gradle.properties
           echo "android.nonTransitiveRClass=true" >> gradle.properties
           
+          # إعدادات التطبيق (تمت إضافة kotlinOptions)
           echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
-          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }" >> app/build.gradle
+          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = '17' } }" >> app/build.gradle
           echo "dependencies { implementation platform('androidx.compose:compose-bom:2024.02.00'); implementation 'androidx.activity:activity-compose:1.8.2'; implementation 'androidx.compose.material3:material3' }" >> app/build.gradle
           
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          # ملف Manifest (مع ثيم أساسي لتجنب الانهيار)
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
           
-          # كتابة كود Kotlin باستخدام cat لضمان عدم وجود أخطاء في الأسطر
-          cat << 'EOF' > app/src/main/java/com/rootassistant/MainActivity.kt
-          package com.rootassistant
-          
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.material3.Text
-          
-          class MainActivity : ComponentActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContent { 
-                      Text("Hello from Root Assistant!") 
-                  }
-              }
-          }
-          EOF
+          # كود Kotlin (مكتوب في سطر واحد باستخدام \n لتجنب أخطاء المسافات)
+          echo -e "package com.rootassistant\nimport android.os.Bundle\nimport androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\nimport androidx.compose.material3.MaterialTheme\nimport androidx.compose.material3.Text\nclass MainActivity : ComponentActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContent {\n            MaterialTheme {\n                Text(\"Hello from Root Assistant!\")\n            }\n        }\n    }\n}" > app/src/main/java/com/rootassistant/MainActivity.kt
 
       - name: Build APK
         run: gradle assembleDebug
