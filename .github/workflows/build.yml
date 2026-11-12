@@ -14,23 +14,31 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v3
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: 8.6
 
-      - name: Create Files via Base64
+      - name: Create Project Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          echo "cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgewogICAgICAgIGdvb2dsZSgpCiAgICAgICAgbWF2ZW5DZW50cmFsKCkKICAgICAgICBncmFkbGVQbHVnaW5Qb3J0YWwoKQogICAgfQp9CmRlcGVuZGVuY3lSZXNvbHV0aW9uTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXNNb2RlLnNldChSZXBvc2l0b3JpZXNNb2RlLkZBSUxfT05fUFJPSkVDVF9SRVBPUykKICAgIHJlcG9zaXRvcmllcyB7CiAgICAgICAgZ29vZ2xlKCkKICAgICAgICBtYXZlbkNlbnRyYWwoKQogICAgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiUm9vdEFzc2lzdGFudCIKaW5jbHVkZSgiOmFwcCIpCg==" | tr -d ' \n' | base64 -d > settings.gradle
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo 'rootProject.name = "RootAssistant"' >> settings.gradle
+          echo 'include ":app"' >> settings.gradle
           
-          echo "b3JnLmdyYWRsZS5qdm1hcmdzPS1YbXgyMDQ4bSAtRGZpbGUuZW5jb2Rpbmc9VVRGLTgKYW5kcm9pZC51c2VBbmRyb2lkWHRydWUKa290bGluLmNvZGUuc3R5bGU9b2ZmaWNpYWwKYW5kcm9pZC5ub25UcmFuc2l0aXZlUkNsYXNzPXRydWUK" | tr -d ' \n' | base64 -d > gradle.properties
+          echo "android.useAndroidX=true" > gradle.properties
+          echo "android.nonTransitiveRClass=true" >> gradle.properties
           
-          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguMi4yJwogICAgaWQgJ29yZy5qZXRicmFpbnMua290bGluLmFuZHJvaWQnIHZlcnNpb24gJzEuOS4yMicKfQphbmRyb2lkIHsKICAgIG5hbWVzcGFjZSAnY29tLnJvb3Rhc3Npc3RhbnQnCiAgICBjb21waWxlU2RrIDM0CiAgICBkZWZhdWx0Q29uZmlnIHsKICAgICAgICBhcHBsaWNhdGlvbklkICJjb20ucm9vdGFzc2lzdGFudCIKICAgICAgICBtaW5TZGsgMjkKICAgICAgICB0YXJnZXRTZGsgMzQKICAgICAgICB2ZXJzaW9uQ29kZSAxCiAgICAgICAgdmVyc2lvbk5hbWUgIjEuMCIKICAgIH0KICAgIGJ1aWxkRmVhdHVyZXMgewogICAgICAgIGNvbXBvc2UgdHJ1ZQogICAgfQogICAgY29tcG9zZU9wdGlvbnMgewogICAgICAgIGtvdGxpblNvbXBpbGVyRXh0ZW5zaW9uVmVyc2lvbiAnMS41LjgnCiAgICB9CiAgICBjb21waWxlT3B0aW9ucyB7CiAgICAgICAgc291cmNlQ29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICAgICAgdGFyZ2V0Q29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICB9CiAgICBrb3RsaW5PcHRpb25zIHsKICAgICAgICBqdm1UYXJnZXQgPSAnMTcnCiAgICB9Cn0KZGVwZW5kZW5jaWVzIHsKICAgIGltcGxlbWVudGF0aW9uIHBsYXRmb3JtKCdhbmRyb2lkeC5jb21wb3NlOmNvbXBvc2UtYm9tOjIwMjQuMDIuMDAnKQogICAgaW1wbGVtZW50YXRpb24gJ2FuZHJvaWR4LmFjdGl2aXR5OmFjdGl2aXR5LWNvbXBvc2U6MS44LjInCiAgICBpbXBsZW1lbnRhdGlvbiAnYW5kcm9pZHguY29tcG9zZS5tYXRlcmlhbDM6bWF0ZXJpYWwzJwp9Cg==" | tr -d ' \n' | base64 -d > app/build.gradle
+          # تم إزالة composeOptions بالكامل لحل مشكلة kotlinCompilerExtensionVersion
+          echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
+          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }; kotlinOptions { jvmTarget = '17' } }" >> app/build.gradle
+          echo "dependencies { implementation platform('androidx.compose:compose-bom:2024.02.00'); implementation 'androidx.activity:activity-compose:1.8.2'; implementation 'androidx.compose.material3:material3' }" >> app/build.gradle
           
-          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICA8YXBwbGljYXRpb24KICAgICAgICBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIgogICAgICAgIGFuZHJvaWQ6bGFiZWw9IlJvb3RBc3Npc3RhbnQiCiAgICAgICAgYW5kcm9pZDp0aGVtZT0iQGFuZHJvaWQ6c3R5bGUvVGhlbWUuTWF0ZXJpYWwuTGlnaHQuTm9BY3Rpb25CYXIiPgogICAgICAgIDxhY3Rpdml0eQogICAgICAgICAgICBhbmRyb2lkOm5hbWU9Ii5NYWluQWN0aXZpdHkiCiAgICAgICAgICAgIGFuZHJvaWQ6ZXhwb3J0ZWQ9InRydWUiPgogICAgICAgICAgICA8aW50ZW50LWZpbHRlcj4KICAgICAgICAgICAgICAgIDxhY3Rpb24gYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5hY3Rpb24uTUFJTiIgLz4KICAgICAgICAgICAgICAgIDxjYXRlZ29yeSBhbmRyb2lkOm5hbWU9ImFuZHJvaWQuaW50ZW50LmNhdGVnb3J5LkxBVU5DSEVSIiAvPgogICAgICAgICAgICA8L2ludGVudC1maWx0ZXI+CiAgICAgICAgPC9hY3Rpdml0eT4KICAgIDwvYXBwbGljYXRpb24+CjwvbWFuaWZlc3Q+" | tr -d ' \n' | base64 -d > app/src/main/AndroidManifest.xml
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:theme="@android:style/Theme.Material.Light.NoActionBar"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
           
-          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudAoKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlCmltcG9ydCBhbmRyb2lkeC5hY3Rpdml0eS5Db21wb25lbnRBY3Rpdml0eQppbXBvcnQgYW5kcm9pZHguYWN0aXZpdHkuY29tcG9zZS5zZXRDb250ZW50CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5UZXh0CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5NYXRlcmlhbFRoZW1lCgpjbGFzcyBNYWluQWN0aXZpdHkgOiBDb21wb25lbnRBY3Rpdml0eSgpIHsKICAgIG92ZXJyaWRlIGZ1biBvbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGU6IEJ1bmRsZT8pIHsKICAgICAgICBzdXBlci5vbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGUpCiAgICAgICAgc2V0Q29udGVudCB7CiAgICAgICAgICAgIE1hdGVyaWFsVGhlbWUgewogICAgICAgICAgICAgICAgVGV4dCgiSGVsbG8gZnJvbSBSb290IEFzc2lzdGFudCEiKQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9" | tr -d ' \n' | base64 -d > app/src/main/java/com/rootassistant/MainActivity.kt
+          echo -e "package com.rootassistant\nimport android.os.Bundle\nimport androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\nimport androidx.compose.material3.MaterialTheme\nimport androidx.compose.material3.Text\nclass MainActivity : ComponentActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContent {\n            MaterialTheme {\n                Text(\"Hello from Root Assistant!\")\n            }\n        }\n    }\n}" > app/src/main/java/com/rootassistant/MainActivity.kt
 
       - name: Build APK
         run: gradle assembleDebug
