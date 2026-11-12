@@ -15,7 +15,7 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Generate Modern UI Java Files
+      - name: Generate 3D UI Project Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
@@ -38,6 +38,7 @@ jobs:
               defaultConfig { applicationId "com.rootassistant"; minSdk 29; targetSdk 34; versionCode 1; versionName "1.0" }
               compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
           }
+          dependencies { implementation 'androidx.cardview:cardview:1.0.0' }
           """)
 
           with open('app/src/main/AndroidManifest.xml', 'w') as f:
@@ -55,9 +56,11 @@ jobs:
 
           java_code = """package com.rootassistant;
           import android.app.Activity;
+          import android.content.Intent;
           import android.graphics.Color;
           import android.graphics.Typeface;
           import android.graphics.drawable.GradientDrawable;
+          import android.net.Uri;
           import android.os.Build;
           import android.os.Bundle;
           import android.view.Gravity;
@@ -67,84 +70,132 @@ jobs:
           import android.widget.ScrollView;
           import android.widget.TextView;
           import android.widget.Toast;
+          import androidx.cardview.widget.CardView;
 
           public class MainActivity extends Activity {
+              private boolean isVerified = false;
+              private Button btnRoot;
+              private TextView logs;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
                   ScrollView scroll = new ScrollView(this);
-                  scroll.setBackgroundColor(Color.parseColor("#F6F8FA"));
+                  scroll.setBackgroundColor(Color.parseColor("#F0F2F5"));
 
                   LinearLayout layout = new LinearLayout(this);
                   layout.setOrientation(LinearLayout.VERTICAL);
-                  layout.setPadding(50, 80, 50, 50);
+                  layout.setPadding(60, 80, 60, 50);
 
+                  // العنوان
                   TextView title = new TextView(this);
                   title.setText("Root Assistant");
-                  title.setTextSize(28);
-                  title.setTextColor(Color.parseColor("#1F6FEB"));
+                  title.setTextSize(32);
+                  title.setTextColor(Color.parseColor("#1A73E8"));
                   title.setTypeface(null, Typeface.BOLD);
                   title.setGravity(Gravity.CENTER);
-                  title.setPadding(0, 0, 0, 40);
+                  title.setPadding(0, 0, 0, 20);
                   layout.addView(title);
 
+                  // معلومات الجهاز
                   TextView info = new TextView(this);
                   info.setText("Device: " + Build.MANUFACTURER + " " + Build.MODEL + "\\nAndroid: " + Build.VERSION.RELEASE);
                   info.setTextSize(16);
-                  info.setTextColor(Color.parseColor("#24292F"));
-                  info.setBackgroundColor(Color.parseColor("#FFFFFF"));
+                  info.setTextColor(Color.parseColor("#3C4043"));
+                  info.setBackgroundColor(Color.WHITE);
                   info.setPadding(40, 40, 40, 40);
                   info.setGravity(Gravity.CENTER);
                   layout.addView(info);
 
-                  TextView sp1 = new TextView(this);
-                  sp1.setHeight(60);
-                  layout.addView(sp1);
+                  // أزرار تحميل Firmware
+                  layout.addView(create3DButton("Download Pixel Firmware", "#34A853", "https://developers.google.com/android/images"));
+                  layout.addView(create3DButton("Download Samsung Firmware", "#EA4335", "https://samfw.com/"));
+                  layout.addView(create3DButton("Download Xiaomi Firmware", "#FBBC05", "https://www.miui.com/download.html"));
 
-                  Button btnSelect = createButton("1. Select boot.img", "#1F6FEB");
+                  // زر اختيار الملف
+                  Button btnSelect = create3DButton("1. Select boot.img", "#1A73E8", null);
                   btnSelect.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Selecting boot.img...", Toast.LENGTH_SHORT).show(); }
+                      public void onClick(View v) { 
+                          Toast.makeText(MainActivity.this, "Opening file manager... (Simulated)", Toast.LENGTH_SHORT).show();
+                          appendLog("[Log] File picker opened.");
+                      }
                   });
                   layout.addView(btnSelect);
 
-                  Button btnVerify = createButton("2. Verify boot.img", "#2EA043");
+                  // زر التحقق
+                  Button btnVerify = create3DButton("2. Verify boot.img", "#1E8E3E", null);
                   btnVerify.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Verifying...", Toast.LENGTH_SHORT).show(); }
+                      public void onClick(View v) { 
+                          isVerified = true;
+                          btnRoot.setEnabled(true);
+                          btnRoot.setAlpha(1.0f);
+                          Toast.makeText(MainActivity.this, "Verification Successful!", Toast.LENGTH_SHORT).show();
+                          appendLog("[Log] boot.img verified. Root unlocked.");
+                      }
                   });
                   layout.addView(btnVerify);
 
-                  Button btnRoot = createButton("3. Start Root Process", "#D73A49");
+                  // زر بدء الروت (معطل مبدئياً)
+                  btnRoot = create3DButton("3. Start Root Process", "#D93025", null);
+                  btnRoot.setEnabled(false);
+                  btnRoot.setAlpha(0.5f); // يبدو باهتاً عندما يكون معطلاً
                   btnRoot.setOnClickListener(new View.OnClickListener() {
-                      public void onClick(View v) { Toast.makeText(MainActivity.this, "Initiating Root Process...", Toast.LENGTH_SHORT).show(); }
+                      public void onClick(View v) { 
+                          if(isVerified) {
+                              Toast.makeText(MainActivity.this, "Rooting...", Toast.LENGTH_SHORT).show();
+                              appendLog("[Log] Root process initiated.");
+                          }
+                      }
                   });
                   layout.addView(btnRoot);
 
-                  TextView logs = new TextView(this);
-                  logs.setText("Status: Waiting for input...\\n\\n[Log] App Started Successfully.");
+                  // شاشة السجلات
+                  logs = new TextView(this);
+                  logs.setText("Status: Waiting for input...\\n");
                   logs.setTextSize(14);
                   logs.setTextColor(Color.GRAY);
-                  logs.setPadding(0, 50, 0, 0);
+                  logs.setPadding(0, 40, 0, 0);
                   layout.addView(logs);
 
                   scroll.addView(layout);
                   setContentView(scroll);
               }
 
-              private Button createButton(String text, String colorHex) {
+              // دالة إنشاء أزرار 3D
+              private CardView create3DButton(String text, String colorHex, String url) {
+                  CardView card = new CardView(this);
+                  LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                      LinearLayout.LayoutParams.MATCH_PARENT, 160
+                  );
+                  params.setMargins(0, 0, 0, 30);
+                  card.setLayoutParams(params);
+                  card.setRadius(30);
+                  card.setCardElevation(15); // تأثير 3D
+                  card.setUseCompatPadding(true);
+
                   Button btn = new Button(this);
                   btn.setText(text);
                   btn.setTextSize(16);
                   btn.setTextColor(Color.WHITE);
+                  btn.setAllCaps(false);
                   GradientDrawable shape = new GradientDrawable();
                   shape.setCornerRadius(30);
                   shape.setColor(Color.parseColor(colorHex));
                   btn.setBackground(shape);
-                  LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.MATCH_PARENT, 150
-                  );
-                  params.setMargins(0, 0, 0, 30);
-                  btn.setLayoutParams(params);
-                  return btn;
+                  
+                  if (url != null) {
+                      btn.setOnClickListener(new View.OnClickListener() {
+                          public void onClick(View v) {
+                              startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                          }
+                      });
+                  }
+                  card.addView(btn);
+                  return card;
+              }
+
+              private void appendLog(String text) {
+                  logs.append(text + "\\n");
               }
           }"""
 
@@ -162,5 +213,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RootAssistant-APK
+          name: RootAssistant-3D-APK
           path: app/build/outputs/apk/debug/*.apk
