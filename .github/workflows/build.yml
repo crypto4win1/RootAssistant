@@ -10,106 +10,32 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v3
-        with:
-          gradle-version: 8.2
 
-      - name: Create Project Files
+      - name: Create Simple Project
         run: |
-          mkdir -p app/src/main/java/com/rootassistant
-
-          # 1. إعدادات المستودع
-          cat > settings.gradle << 'EOF'
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "RootAssistant"
-          include ":app"
-          EOF
-
-          # 2. ملف البناء الرئيسي
-          cat > build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application' version '8.2.2' apply false
-              id 'org.jetbrains.kotlin.android' version '1.9.22' apply false
-          }
-          EOF
-
-          # 3. خصائص Gradle
-          cat > gradle.properties << 'EOF'
-          android.useAndroidX=true
-          android.nonTransitiveRClass=true
-          kotlin.jvm.target.validation.mode=IGNORE
-          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
-          EOF
-
-          # 4. إعدادات التطبيق (تمت إضافة مكتبات Compose الناقصة)
-          cat > app/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application'
-              id 'org.jetbrains.kotlin.android'
-          }
-          android {
-              namespace 'com.rootassistant'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.rootassistant"
-                  minSdk 29
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              buildFeatures {
-                  compose true
-              }
-              composeOptions {
-                  kotlinCompilerExtensionVersion '1.5.8'
-              }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-              kotlinOptions {
-                  jvmTarget = '17'
-              }
-          }
-          dependencies {
-              implementation platform('androidx.compose:compose-bom:2024.02.00')
-              implementation 'androidx.core:core-ktx:1.12.0'
-              implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-              implementation 'androidx.activity:activity-compose:1.8.2'
-              implementation 'androidx.compose.ui:ui'
-              implementation 'androidx.compose.ui:ui-graphics'
-              implementation 'androidx.compose.ui:ui-tooling-preview'
-              implementation 'androidx.compose.material3:material3'
-          }
-          EOF
-
-          # 5. ملف البيان
-          cat > app/src/main/AndroidManifest.xml << 'EOF'
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application android:theme="@android:style/Theme.Material.Light.NoActionBar">
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          # 6. الكود الأساسي (مشفر Base64 لمنع أي أخطاء في المسافات)
-          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudAoKaW1wb3J0IGFuZHJvaWQub3MuQnVuZGxlCmltcG9ydCBhbmRyb2lkeC5hY3Rpdml0eS5Db21wb25lbnRBY3Rpdml0eQppbXBvcnQgYW5kcm9pZHguYWN0aXZpdHkuY29tcG9zZS5zZXRDb250ZW50CmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5NYXRlcmlhbFRoZW1lCmltcG9ydCBhbmRyb2lkeC5jb21wb3NlLm1hdGVyaWFsMy5UZXh0CgpjbGFzcyBNYWluQWN0aXZpdHkgOiBDb21wb25lbnRBY3Rpdml0eSgpIHsKICAgIG92ZXJyaWRlIGZ1biBvbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGU6IEJ1bmRsZT8pIHsKICAgICAgICBzdXBlci5vbkNyZWF0ZShzYXZlZEluc3RhbmNlU3RhdGUpCiAgICAgICAgc2V0Q29udGVudCB7CiAgICAgICAgICAgIE1hdGVyaWFsVGhlbWUgewogICAgICAgICAgICAgICAgVGV4dCgiSGVsbG8gZnJvbSBSb290IEFzc2lzdGFudCEiKQogICAgICAgICAgICB9CiAgICAgICAgfQogICAgfQp9" | base64 -d > app/src/main/java/com/rootassistant/MainActivity.kt
+          mkdir -p app/src/main/java/com/example/simple
+          
+          # إعدادات المشروع الأساسية
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo 'rootProject.name = "SimpleApp"' >> settings.gradle
+          echo 'include ":app"' >> settings.gradle
+          
+          # إعدادات البناء
+          echo "plugins { id 'com.android.application' version '8.2.2' apply false }" > build.gradle
+          echo "plugins { id 'com.android.application' }" > app/build.gradle
+          echo "android { namespace 'com.example.simple'; compileSdk 34; defaultConfig { applicationId 'com.example.simple'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' } }" >> app/build.gradle
+          
+          # ملف البيان
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Simple App"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          
+          # كود جافا بسيط جداً
+          echo 'package com.example.simple; import android.app.Activity; import android.os.Bundle; import android.widget.TextView; import android.view.Gravity; public class MainActivity extends Activity { @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); TextView tv = new TextView(this); tv.setText("The App Works!"); tv.setGravity(Gravity.CENTER); setContentView(tv); } }' > app/src/main/java/com/example/simple/MainActivity.java
 
       - name: Build APK
         run: |
@@ -119,5 +45,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: RootAssistant-APK
+          name: Simple-App-APK
           path: app/build/outputs/apk/debug/*.apk
