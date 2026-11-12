@@ -14,86 +14,30 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v3
         with:
-          gradle-version: 8.6
+          gradle-version: '8.6'
 
       - name: Create Project Files
         run: |
           mkdir -p app/src/main/java/com/rootassistant
           
-          cat << 'EOF' > settings.gradle
-          pluginManagement {
-              repositories { google(); mavenCentral(); gradlePluginPortal() }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-              repositories { google(); mavenCentral() }
-          }
-          rootProject.name = "RootAssistant"
-          include(":app")
-          EOF
+          # إعدادات Gradle
+          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
+          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
+          echo 'rootProject.name = "RootAssistant"' >> settings.gradle
+          echo 'include ":app"' >> settings.gradle
+          
+          # إعدادات التطبيق
+          echo "plugins { id 'com.android.application' version '8.2.2'; id 'org.jetbrains.kotlin.android' version '1.9.22' }" > app/build.gradle
+          echo "android { namespace 'com.rootassistant'; compileSdk 34; defaultConfig { applicationId 'com.rootassistant'; minSdk 29; targetSdk 34; versionCode 1; versionName '1.0' }; buildFeatures { compose true }; composeOptions { kotlinCompilerExtensionVersion '1.5.8' }; compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 } }" >> app/build.gradle
+          echo "dependencies { implementation platform('androidx.compose:compose-bom:2024.02.00'); implementation 'androidx.activity:activity-compose:1.8.2'; implementation 'androidx.compose.material3:material3' }" >> app/build.gradle
+          
+          # ملفات التطبيق الأساسية
+          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
+          
+          echo 'package com.rootassistant; import android.os.Bundle; import androidx.activity.ComponentActivity; import androidx.activity.compose.setContent; import androidx.compose.material3.Text; class MainActivity : ComponentActivity() { override fun onCreate(savedInstanceState: Bundle?) { super.onCreate(savedInstanceState); setContent { Text("Hello from Root Assistant!") } } }' > app/src/main/java/com/rootassistant/MainActivity.kt
 
-          cat << 'EOF' > app/build.gradle
-          plugins {
-              id 'com.android.application' version '8.2.2'
-              id 'org.jetbrains.kotlin.android' version '1.9.22'
-          }
-          android {
-              namespace 'com.rootassistant'
-              compileSdk 34
-              defaultConfig {
-                  applicationId "com.rootassistant"
-                  minSdk 29
-                  targetSdk 34
-                  versionCode 1
-                  versionName "1.0"
-              }
-              buildFeatures { compose true }
-              composeOptions { kotlinCompilerExtensionVersion '1.5.8' }
-              compileOptions {
-                  sourceCompatibility JavaVersion.VERSION_17
-                  targetCompatibility JavaVersion.VERSION_17
-              }
-          }
-          dependencies {
-              implementation platform('androidx.compose:compose-bom:2024.02.00')
-              implementation 'androidx.activity:activity-compose:1.8.2'
-              implementation 'androidx.compose.material3:material3'
-          }
-          EOF
-
-          cat << 'EOF' > app/src/main/AndroidManifest.xml
-          <?xml version="1.0" encoding="utf-8"?>
-          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-              <application>
-                  <activity android:name=".MainActivity" android:exported="true">
-                      <intent-filter>
-                          <action android:name="android.intent.action.MAIN"/>
-                          <category android:name="android.intent.category.LAUNCHER"/>
-                      </intent-filter>
-                  </activity>
-              </application>
-          </manifest>
-          EOF
-
-          cat << 'EOF' > app/src/main/java/com/rootassistant/MainActivity.kt
-          package com.rootassistant
-          import android.os.Bundle
-          import androidx.activity.ComponentActivity
-          import androidx.activity.compose.setContent
-          import androidx.compose.material3.Text
-          class MainActivity : ComponentActivity() {
-              override fun onCreate(savedInstanceState: Bundle?) {
-                  super.onCreate(savedInstanceState)
-                  setContent { Text("Hello from Root Assistant!") }
-              }
-          }
-          EOF
-
-      - name: Build with Gradle
-        run: |
-          gradle wrapper --gradle-version 8.6
-          chmod +x gradlew
-          ./gradlew assembleDebug
+      - name: Build APK
+        run: gradle assembleDebug
 
       - uses: actions/upload-artifact@v4
         with:
