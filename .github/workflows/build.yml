@@ -10,32 +10,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create Simple Project
+      - name: Create Java Project Files (Base64)
         run: |
-          mkdir -p app/src/main/java/com/example/simple
+          mkdir -p app/src/main/java/com/rootassistant
           
-          # إعدادات المشروع الأساسية
-          echo "pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }" > settings.gradle
-          echo "dependencyResolutionManagement { repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS); repositories { google(); mavenCentral() } }" >> settings.gradle
-          echo 'rootProject.name = "SimpleApp"' >> settings.gradle
-          echo 'include ":app"' >> settings.gradle
-          
-          # إعدادات البناء
-          echo "plugins { id 'com.android.application' version '8.2.2' apply false }" > build.gradle
-          echo "plugins { id 'com.android.application' }" > app/build.gradle
-          echo "android { namespace 'com.example.simple'; compileSdk 34; defaultConfig { applicationId 'com.example.simple'; minSdk 24; targetSdk 34; versionCode 1; versionName '1.0' } }" >> app/build.gradle
-          
-          # ملف البيان
-          echo '<?xml version="1.0" encoding="utf-8"?><manifest xmlns:android="http://schemas.android.com/apk/res/android"><application android:label="Simple App"><activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity></application></manifest>' > app/src/main/AndroidManifest.xml
-          
-          # كود جافا بسيط جداً
-          echo 'package com.example.simple; import android.app.Activity; import android.os.Bundle; import android.widget.TextView; import android.view.Gravity; public class MainActivity extends Activity { @Override protected void onCreate(Bundle savedInstanceState) { super.onCreate(savedInstanceState); TextView tv = new TextView(this); tv.setText("The App Works!"); tv.setGravity(Gravity.CENTER); setContentView(tv); } }' > app/src/main/java/com/example/simple/MainActivity.java
+          # 1. إعدادات المشروع
+          echo "cGx1Z2luTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXMgewogICAgICAgIGdvb2dsZSgpCiAgICAgICAgbWF2ZW5DZW50cmFsKCkKICAgICAgICBncmFkbGVQbHVnaW5Qb3J0YWwoKQogICAgfQp9CmRlcGVuZGVuY3lSZXNvbHV0aW9uTWFuYWdlbWVudCB7CiAgICByZXBvc2l0b3JpZXNNb2RlLnNldChSZXBvc2l0b3JpZXNNb2RlLkZBSUxfT05fUFJPSkVDVF9SRVBPUykKICAgIHJlcG9zaXRvcmllcyB7CiAgICAgICAgZ29vZ2xlKCkKICAgICAgICBtYXZlbkNlbnRyYWwoKQogICAgfQp9CnJvb3RQcm9qZWN0Lm5hbWUgPSAiUm9vdEFzc2lzdGFudCIKaW5jbHVkZSAnOmFwcCcK" | base64 -d > settings.gradle
+
+          # 2. إعدادات البناء
+          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nIHZlcnNpb24gJzguMi4yJyBhcHBseSBmYWxzZQp9Cg==" | base64 -d > build.gradle
+
+          echo "cGx1Z2lucyB7CiAgICBpZCAnY29tLmFuZHJvaWQuYXBwbGljYXRpb24nCn0KYW5kcm9pZCB7CiAgICBuYW1lc3BhY2UgJ2NvbS5yb290YXNzaXN0YW50JwogICAgY29tcGlsZVNkayAzNAogICAgZGVmYXVsdENvbmZpZyB7CiAgICAgICAgYXBwbGljYXRpb25JZCAiY29tLnJvb3Rhc3Npc3RhbnQiCiAgICAgICAgbWluU2RrIDI5CiAgICAgICAgdGFyZ2V0U2RrIDM0CiAgICAgICAgdmVyc2lvbkNvZGUgMQogICAgICAgIHZlcnNpb25OYW1lICIxLjAiCiAgICB9CiAgICBjb21waWxlT3B0aW9ucyB7CiAgICAgICAgc291cmNlQ29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICAgICAgdGFyZ2V0Q29tcGF0aWJpbGl0eSBKYXZhVmVyc2lvbi5WRVJTSU9OXzE3CiAgICB9Cn0K" | base64 -d > app/build.gradle
+
+          # 3. ملف البيان (Manifest)
+          echo "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0idXRmLTgiPz4KPG1hbmlmZXN0IHhtbG5zOmFuZHJvaWQ9Imh0dHA6Ly9zY2hlbWFzLmFuZHJvaWQuY29tL2Fway9yZXMvYW5kcm9pZCI+CiAgICA8YXBwbGljYXRpb24KICAgICAgICBhbmRyb2lkOmFsbG93QmFja3VwPSJ0cnVlIgogICAgICAgIGFuZHJvaWQ6bGFiZWw9IlJvb3QgQXNzaXN0YW50IgogICAgICAgIGFuZHJvaWQ6dGhlbWU9IkBhbmRyb2lkOnN0eWxlL1RoZW1lLk1hdGVyaWFsLkxpZ2h0Lk5vQWN0aW9uQmFyIj4KICAgICAgICA8YWN0aXZpdHkKICAgICAgICAgICAgYW5kcm9pZDpuYW1lPSIuTWFpbkFjdGl2aXR5IgogICAgICAgICAgICBhbmRyb2lkOmV4cG9ydGVkPSJ0cnVlIj4KICAgICAgICAgICAgPGludGVudC1maWx0ZXI+CiAgICAgICAgICAgICAgICA8YWN0aW9uIGFuZHJvaWQ6bmFtZT0iYW5kcm9pZC5pbnRlbnQuYWN0aW9uLk1BSU4iIC8+CiAgICAgICAgICAgICAgICA8Y2F0ZWdvcnkgYW5kcm9pZDpuYW1lPSJhbmRyb2lkLmludGVudC5jYXRlZ29yeS5MQVVOQ0hFUiIgLz4KICAgICAgICAgICAgPC9pbnRlbnQtZmlsdGVyPgogICAgICAgIDwvYWN0aXZpdHk+CiAgICA8L2FwcGxpY2F0aW9uPgo8L21hbmlmZXN0Pg==" | base64 -d > app/src/main/AndroidManifest.xml
+
+          # 4. كود Java (واجهة بسيطة جداً)
+          echo "cGFja2FnZSBjb20ucm9vdGFzc2lzdGFudDsKaW1wb3J0IGFuZHJvaWQuYXBwLkFjdGl2aXR5OwppbXBvcnQgYW5kcm9pZC5vcy5CdW5kbGU7CmltcG9ydCBhbmRyb2lkLndpZGdldC5CdXR0b247CmltcG9ydCBhbmRyb2lkLndpZGdldC5MaW5lYXJMYXlvdXQ7CmltcG9ydCBhbmRyb2lkLndpZGdldC5UZXh0VmlldzsKaW1wb3J0IGFuZHJvaWQuZ3JhcGhpY3MuQ29sb3I7CgpwdWJsaWMgY2xhc3MgTWFpbkFjdGl2aXR5IGV4dGVuZHMgQWN0aXZpdHkgewogICAgQE92ZXJyaWRlCiAgICBwcm90ZWN0ZWQgdm9pZCBvbkNyZWF0ZShCdW5kbGUgc2F2ZWRJbnN0YW5jZVN0YXRlKSB7CiAgICAgICAgc3VwZXIub25DcmVhdGUoc2F2ZWRJbnN0YW5jZVN0YXRlKTsKICAgICAgICBMaW5lYXJMYXlvdXQgbGF5b3V0ID0gbmV3IExpbmVhckxheW91dCh0aGlzKTsKICAgICAgICBsYXlvdXQuc2V0T3JpZW50YXRpb24oTGluZWFyTGF5b3V0LlZFUlRJQ0FMKTsKICAgICAgICBsYXlvdXQuc2V0UGFkZGluZyg1MCwgNTAsIDUwLCA1MCk7CgogICAgICAgIFRleHRWaWV3IHRpdGxlID0gbmV3IFRleHRWaWV3KHRoaXMpOwogICAgICAgIHRpdGxlLnNldFRleHQoIlJvb3QgQXNzaXN0YW50Iik7CiAgICAgICAgdGl0bGUuc2V0VGV4dFNpemUoMjQpOwogICAgICAgIHRpdGxlLnNldFRleHRDb2xvcihDb2xvci5CTEFDSyk7CgogICAgICAgIEJ1dHRvbiBidG4gPSBuZXcgQnV0dG9uKHRoaXMpOwogICAgICAgIGJ0bi5zZXRUZXh0KCJDaGVjayBib290LmltZyIpOwoKICAgICAgICBsYXlvdXQuYWRkVmlldyh0aXRsZSk7CiAgICAgICAgbGF5b3V0LmFkZFZpZXcoYnRuKTsKICAgICAgICBzZXRDb250ZW50VmlldyhsYXlvdXQpOwogICAgfQp9" | base64 -d > app/src/main/java/com/rootassistant/MainActivity.java
 
       - name: Build APK
         run: |
@@ -45,5 +41,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: Simple-App-APK
+          name: RootAssistant-APK
           path: app/build/outputs/apk/debug/*.apk
