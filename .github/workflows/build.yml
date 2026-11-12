@@ -1,0 +1,401 @@
+name: Build Root Assistant APK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.6
+
+      - name: Generate Project Files Automatically
+        run: |
+          mkdir -p app/src/main/java/com/rootassistant/core
+          mkdir -p app/src/main/res/values
+          
+          cat > settings.gradle.kts << 'EOF'
+          pluginManagement {
+              repositories { google(); mavenCentral(); gradlePluginPortal() }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories { google(); mavenCentral() }
+          }
+          rootProject.name = "RootAssistant"
+          include(":app")
+          EOF
+
+          cat > build.gradle.kts << 'EOF'
+          plugins {
+              id("com.android.application") version "8.2.2" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.22" apply false
+          }
+          EOF
+
+          cat > gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.useAndroidX=true
+          kotlin.code.style=official
+          android.nonTransitiveRClass=true
+          EOF
+
+          cat > app/build.gradle.kts << 'EOF'
+          plugins {
+              id("com.android.application")
+              id("org.jetbrains.kotlin.android")
+          }
+          android {
+              namespace = "com.rootassistant"
+              compileSdk = 34
+              defaultConfig {
+                  applicationId = "com.rootassistant"
+                  minSdk = 29
+                  targetSdk = 34
+                  versionCode = 1
+                  versionName = "1.0"
+              }
+              buildFeatures { compose = true }
+              composeOptions { kotlinCompilerExtensionVersion = "1.5.8" }
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+              kotlinOptions { jvmTarget = "17" }
+              packaging { resources.excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+          }
+          dependencies {
+              implementation("androidx.core:core-ktx:1.12.0")
+              implementation("androidx.activity:activity-compose:1.8.2")
+              implementation(platform("androidx.compose:compose-bom:2024.02.00"))
+              implementation("androidx.compose.ui:ui")
+              implementation("androidx.compose.material3:material3")
+              implementation("androidx.compose.material:material-icons-extended")
+              implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+              implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+              implementation("dev.rikka.shizuku:api:13.1.5")
+              implementation("dev.rikka.shizuku:provider:13.1.5")
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+              <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29"/>
+              <uses-permission android:name="moe.shizuku.manager.permission.API_V23"/>
+              <application android:allowBackup="false" android:label="@string/app_name" android:theme="@style/Theme.RootAssistant">
+                  <activity android:name=".MainActivity" android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <provider android:name="rikka.shizuku.ShizukuProvider" android:authorities="${applicationId}.shizuku" android:enabled="true" android:exported="true" android:multiprocess="false"/>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/res/values/strings.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">مساعد الروت</string>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/themes.xml << 'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.RootAssistant" parent="android:Theme.Material.Light.NoActionBar"/>
+          </resources>
+          EOF
+
+          cat > app/src/main/java/com/rootassistant/MainActivity.kt << 'EOF'
+          package com.rootassistant
+          import android.net.Uri
+          import android.os.Build
+          import android.os.Bundle
+          import androidx.activity.ComponentActivity
+          import androidx.activity.compose.rememberLauncherForActivityResult
+          import androidx.activity.compose.setContent
+          import androidx.activity.result.contract.ActivityResultContracts
+          import androidx.compose.foundation.layout.*
+          import androidx.compose.foundation.rememberScrollState
+          import androidx.compose.foundation.verticalScroll
+          import androidx.compose.material.icons.Icons
+          import androidx.compose.material.icons.filled.*
+          import androidx.compose.material3.*
+          import androidx.compose.runtime.*
+          import androidx.compose.ui.Alignment
+          import androidx.compose.ui.Modifier
+          import androidx.compose.ui.graphics.Color
+          import androidx.compose.ui.platform.LocalContext
+          import androidx.compose.ui.unit.dp
+          import com.rootassistant.core.BootImageVerifier
+          import com.rootassistant.core.RootExecutor
+          import com.rootassistant.core.ShizukuManager
+          import com.rootassistant.core.VerificationReport
+          import kotlinx.coroutines.*
+          import java.io.File
+
+          class MainActivity : ComponentActivity() {
+              override fun onCreate(savedInstanceState: Bundle?) {
+                  super.onCreate(savedInstanceState)
+                  setContent { MaterialTheme { RootAssistantApp() } }
+              }
+          }
+
+          @OptIn(ExperimentalMaterial3Api::class)
+          @Composable
+          fun RootAssistantApp() {
+              val ctx = LocalContext.current
+              val scope = rememberCoroutineScope()
+              val sdk = Build.VERSION.SDK_INT
+              var shizukuReady by remember { mutableStateOf(false) }
+              var bootFile by remember { mutableStateOf<File?>(null) }
+              var expectedSha by remember { mutableStateOf("") }
+              var report by remember { mutableStateOf<VerificationReport?>(null) }
+              var verifying by remember { mutableStateOf(false) }
+              var rooting by remember { mutableStateOf(false) }
+              var logText by remember { mutableStateOf("") }
+
+              LaunchedEffect(Unit) {
+                  while (true) {
+                      val pm = ctx.packageManager
+                      shizukuReady = ShizukuManager.isInstalled(pm) && ShizukuManager.isBinderAlive() && ShizukuManager.hasPermission()
+                      delay(1500)
+                  }
+              }
+
+              val canStartRoot = shizukuReady && (report?.allPassed == true) && (bootFile != null)
+              val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+                  uri?.let {
+                      val f = File(ctx.cacheDir, "boot.img")
+                      ctx.contentResolver.openInputStream(it)!!.use { i -> f.outputStream().use { o -> i.copyTo(o) } }
+                      bootFile = f
+                      report = null
+                  }
+              }
+
+              Scaffold(topBar = { TopAppBar(title = { Text("مساعد الروت") }) }) { pad ->
+                  Column(Modifier.padding(pad).padding(16.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                      Card(Modifier.fillMaxWidth()) {
+                          Column(Modifier.padding(12.dp)) {
+                              Text("جهازك: " + Build.MANUFACTURER + " " + Build.MODEL)
+                              Text("Android: " + Build.VERSION.RELEASE + " (SDK " + sdk + ")")
+                          }
+                      }
+                      StatusRow("Shizuku مثبّت ومفعّل", shizukuReady)
+                      OutlinedButton(onClick = { picker.launch(arrayOf("*/*")) }, modifier = Modifier.fillMaxWidth()) {
+                          Icon(Icons.Default.Folder, null)
+                          Spacer(Modifier.width(8.dp))
+                          Text(bootFile?.name ?: "اختر ملف boot.img")
+                      }
+                      OutlinedTextField(value = expectedSha, onValueChange = { expectedSha = it }, label = { Text("SHA-256 المتوقع (اختياري)") }, modifier = Modifier.fillMaxWidth())
+                      Button(onClick = {
+                          val f = bootFile ?: return@Button
+                          verifying = true
+                          scope.launch(Dispatchers.IO) {
+                              val r = BootImageVerifier.verify(f, sdk, expectedSha.ifBlank { null })
+                              withContext(Dispatchers.Main) { report = r; verifying = false }
+                          }
+                      }, enabled = (bootFile != null) && !verifying, modifier = Modifier.fillMaxWidth()) {
+                          if (verifying) CircularProgressIndicator(Modifier.size(20.dp))
+                          else { Icon(Icons.Default.CheckCircle, null); Spacer(Modifier.width(8.dp)); Text("التحقق من boot.img") }
+                      }
+                      report?.let { r ->
+                          Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = if (r.allPassed) Color(0xFF1B5E20) else Color(0xFFB71C1C))) {
+                              Column(Modifier.padding(12.dp)) {
+                                  Text(r.message, color = Color.White)
+                                  Text("Magic: " + r.isMagicValid + " | Header v" + r.headerVersion, color = Color.White)
+                                  Text("SHA-256: " + r.sha256.take(32) + "...", color = Color.White)
+                                  r.errors.forEach { Text("• " + it, color = Color(0xFFFFCDD2)) }
+                              }
+                          }
+                      }
+                      Button(onClick = {
+                          val f = bootFile ?: return@Button
+                          rooting = true
+                          logText = ""
+                          scope.launch(Dispatchers.IO) {
+                              val out = RootExecutor.patchBootImage(ctx, f) { line -> scope.launch(Dispatchers.Main) { logText += line + "\n" } }
+                              withContext(Dispatchers.Main) { rooting = false; logText += "\nالنتيجة: " + (out?.absolutePath ?: "فشل") }
+                          }
+                      }, enabled = canStartRoot && !rooting, modifier = Modifier.fillMaxWidth().height(56.dp)) {
+                          if (rooting) CircularProgressIndicator(Modifier.size(20.dp))
+                          else { Icon(Icons.Default.Build, null); Spacer(Modifier.width(8.dp)); Text("بدء الروت") }
+                      }
+                      if (logText.isNotBlank()) {
+                          Card(Modifier.fillMaxWidth()) { Text(logText, Modifier.padding(8.dp).heightIn(max = 300.dp).verticalScroll(rememberScrollState()), style = MaterialTheme.typography.bodySmall) }
+                      }
+                  }
+              }
+          }
+
+          @Composable
+          fun StatusRow(text: String, ok: Boolean) {
+              Row(verticalAlignment = Alignment.CenterVertically) {
+                  Icon(if (ok) Icons.Default.CheckCircle else Icons.Default.Cancel, null, tint = if (ok) Color(0xFF2E7D32) else Color(0xFFC62828))
+                  Spacer(Modifier.width(8.dp)); Text(text)
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/rootassistant/core/BootImageVerifier.kt << 'EOF'
+          package com.rootassistant.core
+          import java.io.File
+          import java.io.RandomAccessFile
+          import java.nio.ByteBuffer
+          import java.nio.ByteOrder
+          import java.security.MessageDigest
+
+          data class VerificationReport(
+              val isMagicValid: Boolean = false, val headerVersion: Int = -1, val pageSize: Int = 0,
+              val kernelSize: Long = 0, val ramdiskSize: Long = 0, val sha256: String = "",
+              val versionCompatible: Boolean = false, val sha256Matches: Boolean = false,
+              val expectedSha256Provided: Boolean = false, val allPassed: Boolean = false,
+              val errors: List<String> = emptyList(), val message: String = ""
+          )
+
+          object BootImageVerifier {
+              private const val MAGIC = "ANDROID!"
+              private const val OFF_HEADER_VER = 40
+              private const val OFF_PAGE_SIZE = 36
+              private const val OFF_KERNEL = 8
+              private const val OFF_RAMDISK = 16
+              private const val MAX_HEADER = 1580
+
+              private fun allowed(sdk: Int): IntArray = when (sdk) {
+                  29 -> intArrayOf(2); 30 -> intArrayOf(3); 31, 32 -> intArrayOf(3, 4); else -> intArrayOf(2, 3, 4)
+              }
+
+              fun verify(file: File, sdkInt: Int, expectedSha256: String?): VerificationReport {
+                  val errors = mutableListOf<String>()
+                  if (!file.exists() || file.length() < 64) return VerificationReport(errors = listOf("ملف غير صالح"), message = "فشل")
+
+                  val raf = RandomAccessFile(file, "r")
+                  val size = minOf(file.length(), MAX_HEADER.toLong()).toInt()
+                  val header = ByteArray(size)
+                  raf.readFully(header); raf.close()
+
+                  if (String(header, 0, 8, Charsets.US_ASCII) != MAGIC) {
+                      return VerificationReport(errors = listOf("بصمة غير متطابقة"), message = "ليس صورة إقلاع")
+                  }
+
+                  val buf = ByteBuffer.wrap(header).order(ByteOrder.LITTLE_ENDIAN)
+                  val kernelSize = buf.getInt(OFF_KERNEL).toLong() and 0xFFFFFFFFL
+                  val ramdiskSize = buf.getInt(OFF_RAMDISK).toLong() and 0xFFFFFFFFL
+                  val pageSize = buf.getInt(OFF_PAGE_SIZE)
+                  val hv = buf.getInt(OFF_HEADER_VER)
+
+                  if (hv !in allowed(sdkInt)) errors += "إصدار رأس (" + hv + ") غير متوافق"
+                  if (pageSize <= 0 || pageSize > 65536 || (pageSize and (pageSize - 1)) != 0) errors += "حجم صفحة غير صالح"
+                  if (file.length() < pageSize + kernelSize + ramdiskSize) errors += "الملف أصغر من المتوقع"
+
+                  val sha = sha256(file)
+                  var shaMatches = false; var provided = false
+                  if (!expectedSha256.isNullOrBlank()) {
+                      provided = true; shaMatches = sha.equals(expectedSha256.trim(), true)
+                      if (!shaMatches) errors += "SHA-256 لا يطابق"
+                  }
+
+                  val passed = errors.isEmpty() && (!provided || shaMatches)
+                  return VerificationReport(true, hv, pageSize, kernelSize, ramdiskSize, sha, hv in allowed(sdkInt), shaMatches, provided, passed, errors, if (passed) "✅ سليم ومتوافق" else "❌ فشل")
+              }
+
+              private fun sha256(file: File): String {
+                  val md = MessageDigest.getInstance("SHA-256")
+                  file.inputStream().use { i -> val b = ByteArray(65536); var r: Int; while (i.read(b).also { r = it } > 0) md.update(b, 0, r) }
+                  return md.digest().joinToString("") { "%02x".format(it) }
+              }
+          }
+          EOF
+
+          cat > app/src/main/java/com/rootassistant/core/ShizukuManager.kt << 'EOF'
+          package com.rootassistant.core
+          import android.content.pm.PackageManager
+          import rikka.shizuku.Shizuku
+
+          object ShizukuManager {
+              fun isInstalled(pm: PackageManager): Boolean = try { pm.getPackageInfo("moe.shizuku.privileged.api", 0); true } catch (e: Exception) { false }
+              fun isBinderAlive(): Boolean = try { Shizuku.pingBinder() } catch (e: Exception) { false }
+              fun hasPermission(): Boolean = try { !Shizuku.isPreV11() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED } catch (e: Exception) { false }
+          }
+          EOF
+
+          cat > app/src/main/java/com/rootassistant/core/RootExecutor.kt << 'EOF'
+          package com.rootassistant.core
+          import android.content.Context
+          import android.os.Build
+          import java.io.File
+          import java.io.FileOutputStream
+          import java.net.URL
+          import java.util.zip.ZipFile
+
+          object RootExecutor {
+              private const val MAGISK_APK_URL = "https://github.com/topjohnwu/Magisk/releases/download/v27.0/Magisk-v27.0.apk"
+
+              fun ensureMagiskboot(ctx: Context, onLog: (String) -> Unit): File {
+                  val out = File(ctx.filesDir, "magiskboot")
+                  if (out.exists() && out.length() > 0) return out
+                  onLog("> تنزيل Magisk...")
+                  val apk = File(ctx.cacheDir, "magisk.apk")
+                  URL(MAGISK_APK_URL).openStream().use { i -> apk.outputStream().use { o -> i.copyTo(o) } }
+                  val abi = Build.SUPPORTED_ABIS.firstOrNull() ?: "arm64-v8a"
+                  ZipFile(apk).use { zip ->
+                      val entry = listOf("lib/$abi/libmagiskboot.so", "lib/arm64-v8a/libmagiskboot.so").asSequence().mapNotNull { zip.getEntry(it) }.firstOrNull() ?: error("لم يتم العثور على magiskboot")
+                      zip.getInputStream(entry).use { i -> FileOutputStream(out).use { i.copyTo(it) } }
+                  }
+                  out.setExecutable(true); apk.delete(); return out
+              }
+
+              fun patchBootImage(ctx: Context, bootImg: File, onLog: (String) -> Unit): File? {
+                  return try {
+                      val work = File(ctx.filesDir, "work").apply { mkdirs() }
+                      val wBoot = File(work, "boot.img").apply { bootImg.copyTo(this, true) }
+                      val mb = ensureMagiskboot(ctx, onLog)
+                      exec(listOf(mb.absolutePath, "unpack", wBoot.absolutePath), work, onLog)
+                      File(work, "ramdisk.cpio").takeIf { it.exists() }?.copyTo(File(work, "ramdisk.cpio.orig"), true)
+                      exec(listOf(mb.absolutePath, "repack", wBoot.absolutePath), work, onLog)
+                      val patched = File(work, "new-boot.img")
+                      if (patched.exists()) {
+                          val out = File(ctx.getExternalFilesDir(null), "magisk_patched.img")
+                          patched.copyTo(out, true); out
+                      } else null
+                  } catch (e: Exception) { onLog("❌ " + e.message); null }
+              }
+
+              private fun exec(cmd: List<String>, dir: File, onLog: (String) -> Unit) {
+                  val p = ProcessBuilder(cmd).directory(dir).redirectErrorStream(true).start()
+                  p.inputStream.bufferedReader().forEachLine { onLog("  " + it) }
+                  if (p.waitFor() != 0) throw RuntimeException("فشل الأمر")
+              }
+          }
+          EOF
+
+      - name: Generate Gradle Wrapper
+        run: gradle wrapper
+
+      - name: Build APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: RootAssistant-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
